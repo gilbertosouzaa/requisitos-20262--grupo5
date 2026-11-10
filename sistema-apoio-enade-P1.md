@@ -367,79 +367,78 @@ Ficaram como P1 as funcionalidades sem as quais o sistema não cumpre seu objeti
 
 ## 10. Diagrama de Casos de Uso
 
-```plantuml
-@startuml
-left to right direction
+```mermaid
+flowchart LR
+    U(["👤 Usuário"])
+    E(["👤 Estudante"])
+    A(["👤 Administrador"])
+    P(["👤 Professor"])
+    C(["👤 Coordenador"])
 
-actor "Usuário" as U
-actor "Estudante" as E
-actor "Administrador" as A
-actor "Professor" as P
-actor "Coordenador" as C
+    E ==>|é um| U
+    A ==>|é um| U
+    P ==>|é um| U
+    C ==>|é um| U
 
-U <|-- E
-U <|-- A
-U <|-- P
-U <|-- C
+    subgraph SIS["Sistema de Apoio ao ENADE"]
+        UC01(["Cadastrar-se"])
+        UC02(["Autenticar-se"])
+        UC03(["Recuperar senha"])
 
-rectangle "Sistema de Apoio ao ENADE" {
-  usecase "Cadastrar-se" as UC01
-  usecase "Autenticar-se" as UC02
-  usecase "Recuperar senha" as UC03
+        UC04(["Consultar questões"])
+        UC05(["Filtrar questões"])
+        UC06(["Responder questão<br/>(modo estudo)"])
+        UC07(["Ver gabarito comentado"])
 
-  usecase "Consultar questões" as UC04
-  usecase "Filtrar questões" as UC05
-  usecase "Responder questão\n(modo estudo)" as UC06
-  usecase "Ver gabarito comentado" as UC07
+        UC08(["Realizar simulado"])
+        UC09(["Montar simulado"])
+        UC10(["Finalizar simulado"])
+        UC11(["Ver resultado"])
+        UC12(["Retomar simulado"])
 
-  usecase "Realizar simulado" as UC08
-  usecase "Montar simulado" as UC09
-  usecase "Finalizar simulado" as UC10
-  usecase "Ver resultado" as UC11
-  usecase "Retomar simulado" as UC12
+        UC13(["Consultar desempenho"])
+        UC14(["Consultar histórico"])
 
-  usecase "Consultar desempenho" as UC13
-  usecase "Consultar histórico" as UC14
+        UC15(["Visualizar fórum"])
+        UC16(["Publicar mensagem"])
+        UC17(["Denunciar mensagem"])
 
-  usecase "Visualizar fórum" as UC15
-  usecase "Publicar mensagem" as UC16
-  usecase "Denunciar mensagem" as UC17
+        UC18(["Gerenciar questões"])
+        UC19(["Moderar fórum"])
+        UC20(["Comentar gabarito"])
+        UC21(["Consultar relatório<br/>do curso"])
+    end
 
-  usecase "Gerenciar questões" as UC18
-  usecase "Moderar fórum" as UC19
-  usecase "Comentar gabarito" as UC20
-  usecase "Consultar relatório\ndo curso" as UC21
-}
+    E --> UC01
+    U --> UC02
+    E --> UC04
+    E --> UC06
+    E --> UC08
+    E --> UC13
+    E --> UC15
 
-E --> UC01
-U --> UC02
-E --> UC04
-E --> UC06
-E --> UC08
-E --> UC13
-E --> UC15
+    A --> UC18
+    A --> UC19
+    A --> UC20
+    P --> UC20
+    C --> UC21
 
-A --> UC18
-A --> UC19
-A --> UC20
-P --> UC20
-C --> UC21
+    UC03 -.->|"«extend»"| UC02
+    UC05 -.->|"«extend»"| UC04
+    UC07 -.->|"«extend»"| UC06
 
-UC03 .> UC02 : <<extend>>
-UC05 .> UC04 : <<extend>>
-UC07 .> UC06 : <<extend>>
+    UC08 -.->|"«include»"| UC09
+    UC08 -.->|"«include»"| UC10
+    UC10 -.->|"«include»"| UC11
+    UC12 -.->|"«extend»"| UC08
 
-UC08 .> UC09 : <<include>>
-UC08 .> UC10 : <<include>>
-UC10 .> UC11 : <<include>>
-UC12 .> UC08 : <<extend>>
+    UC14 -.->|"«extend»"| UC13
 
-UC14 .> UC13 : <<extend>>
-
-UC16 .> UC15 : <<extend>>
-UC17 .> UC15 : <<extend>>
-@enduml
+    UC16 -.->|"«extend»"| UC15
+    UC17 -.->|"«extend»"| UC15
 ```
+
+> Diagrama em Mermaid, que o GitHub renderiza nativamente. Como o Mermaid não tem notação UML própria para casos de uso, a convenção adotada é: atores e casos de uso em formas arredondadas, generalização com seta grossa (`é um`) e `«include»`/`«extend»` com seta tracejada.
 
 **Observações sobre o modelo**
 
@@ -452,45 +451,44 @@ UC17 .> UC15 : <<extend>>
 
 ## 11. Diagrama de Componentes
 
-```plantuml
-@startuml
-package "Clientes" {
-  [Aplicação Web] as WEB
-  [Aplicação Mobile] as APP
-}
+```mermaid
+flowchart TB
+    subgraph CLI["Clientes"]
+        WEB["Aplicação Web"]
+        APP["Aplicação Mobile"]
+    end
 
-package "Backend" {
-  [API Gateway] as API
-  [Autenticação] as AUTH
-  [Questões] as QST
-  [Simulados] as SIM
-  [Desempenho] as DES
-  [Fórum] as FOR
-}
+    subgraph BACK["Backend"]
+        API["API Gateway"]
+        AUTH["Autenticação"]
+        QST["Questões"]
+        SIM["Simulados"]
+        DES["Desempenho"]
+        FOR["Fórum"]
+    end
 
-database "Banco de Dados" as DB
-cloud "Serviço de E-mail" as MAIL
+    DB[("Banco de Dados")]
+    MAIL{{"☁️ Serviço de E-mail"}}
 
-WEB --> API : REST/HTTPS
-APP --> API : REST/HTTPS
+    WEB -->|REST/HTTPS| API
+    APP -->|REST/HTTPS| API
 
-API --> AUTH
-API --> QST
-API --> SIM
-API --> DES
-API --> FOR
+    API --> AUTH
+    API --> QST
+    API --> SIM
+    API --> DES
+    API --> FOR
 
-SIM --> QST : obtém questões
-DES --> SIM : lê resultados
-FOR --> QST : vincula à questão
-AUTH --> MAIL : recuperação de senha
+    SIM -->|obtém questões| QST
+    DES -->|lê resultados| SIM
+    FOR -->|vincula à questão| QST
+    AUTH -->|recuperação de senha| MAIL
 
-AUTH --> DB
-QST --> DB
-SIM --> DB
-DES --> DB
-FOR --> DB
-@enduml
+    AUTH --> DB
+    QST --> DB
+    SIM --> DB
+    DES --> DB
+    FOR --> DB
 ```
 
 | Componente | Responsabilidade |
@@ -509,32 +507,31 @@ FOR --> DB
 
 ## 12. Diagrama de Implantação
 
-```plantuml
-@startuml
-node "Dispositivo do usuário" {
-  node "Navegador" {
-    artifact "Aplicação Web (SPA)" as WEB
-  }
-  node "Android / iOS" {
-    artifact "App Mobile" as APP
-  }
-}
+```mermaid
+flowchart LR
+    subgraph DEV["Dispositivo do usuário"]
+        subgraph NAV["Navegador"]
+            WEB["📄 Aplicação Web (SPA)"]
+        end
+        subgraph MOB["Android / iOS"]
+            APP["📄 App Mobile"]
+        end
+    end
 
-node "Servidor de Aplicação" as SRV {
-  artifact "Backend (API + serviços)" as BE
-}
+    subgraph SRV["Servidor de Aplicação"]
+        BE["📄 Backend (API + serviços)"]
+    end
 
-node "Servidor de Banco de Dados" as DBS {
-  database "Banco relacional" as DB
-}
+    subgraph DBS["Servidor de Banco de Dados"]
+        DB[("Banco relacional")]
+    end
 
-cloud "Provedor de E-mail" as MAIL
+    MAIL{{"☁️ Provedor de E-mail"}}
 
-WEB --> BE : HTTPS
-APP --> BE : HTTPS
-BE --> DB : TCP/SQL (rede privada)
-BE --> MAIL : SMTP/TLS
-@enduml
+    WEB -->|HTTPS| BE
+    APP -->|HTTPS| BE
+    BE -->|"TCP/SQL (rede privada)"| DB
+    BE -->|SMTP/TLS| MAIL
 ```
 
 O cliente (web ou mobile) se comunica com o servidor de aplicação somente por HTTPS. O banco de dados fica em rede privada, acessível apenas pelo servidor de aplicação. O envio de e-mails é feito por um provedor externo. Tecnologias e hospedagem serão definidas nas próximas etapas.
