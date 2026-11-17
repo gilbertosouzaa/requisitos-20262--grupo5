@@ -103,28 +103,29 @@ A elicitação começa pelos estudantes, que usarão a maior parte das funcional
 
 ### 4.1 Estudantes
 
-1. Você já usou alguma plataforma para estudar para provas ou concursos? Qual? O que gostou e o que não gostou?
-2. Se fosse estudar para o ENADE hoje, onde procuraria questões antigas?
-3. Qual é a sua maior dificuldade para se preparar?
-4. Que filtros seriam úteis para encontrar questões (ano, curso, área, dificuldade)?
-5. Você faria uma prova completa de 4 horas no sistema, ou preferiria simulados menores?
-6. Depois de responder uma questão, o que gostaria de ver?
-7. Como lida com as questões discursivas? Gostaria de ver um padrão de resposta para comparar?
-8. Que informações sobre seu desempenho seriam mais úteis?
-9. Você participaria de discussões sobre as questões?
-10. Se a conexão cair no meio de um simulado, o que você espera que aconteça?
-11. Você se incomodaria se a coordenação visse seus resultados? E se fossem dados agregados da turma?
-12. O que faria você voltar a usar a plataforma com frequência?
+1. Você já usou alguma plataforma para estudar para provas ou concursos? Qual? O que mais gostou e o que te incomodou nela?
+2. No dia a dia, você costuma estudar e resolver exercícios mais pelo computador ou pelo celular?
+3. Se fosse estudar para o ENADE hoje, onde procuraria questões antigas e como organizaria esse estudo?
+4. Qual é a sua maior dificuldade na hora de se preparar para esse tipo de prova?
+5. Como o ENADE não reprova diretamente, o que realmente faria você levar a preparação a sério e usar a plataforma com frequência?
+6. Se tivesse um banco com milhares de questões do ENADE, como você gostaria de buscar ou filtrar o que quer estudar?
+7. Você faria uma prova completa de 4 horas no sistema ou preferiria simulados mais curtos e focados? Por quê?
+8. Logo depois de marcar uma alternativa, o que você espera que apareça na tela?
+9. Como você costuma estudar e corrigir suas respostas nas questões discursivas hoje?
+10. Você participaria de fóruns ou comentários para discutir a resolução das questões com outros alunos?
+11. Que tipo de informação sobre o seu próprio desempenho te ajudaria a saber se você está evoluindo?
+12. Você se incomodaria se a coordenação do curso tivesse acesso aos seus resultados individuais? E se fossem apenas dados gerais/agregados da turma?
 
 ### 4.2 Professores e coordenação
 
-1. Quais são as principais dificuldades dos alunos no ENADE?
-2. Como é feita a preparação hoje no curso?
-3. Que informações ajudariam a avaliar o nível de preparação da turma?
-4. Como as questões deveriam ser classificadas por área?
-5. Você estaria disposto a escrever comentários de questões?
-6. Que cuidados o sistema deve ter com os dados dos alunos?
-7. Qual funcionalidade deveria ser prioridade?
+1. Na sua visão, quais são as maiores dificuldades dos alunos na prova do ENADE hoje?
+2. Como a preparação para o ENADE é feita atualmente no curso e onde vocês sentem que perdem mais tempo?
+3. Você usaria a plataforma apenas como apoio livre para os alunos, ou gostaria de aplicar listas/simulados valendo nota na sua disciplina?
+4. Quem você imagina cadastrando as questões e revisando os gabaritos no sistema (professores, monitores, importação das provas do INEP)?
+5. Como as questões deveriam ser classificadas para refletir a matriz curricular do curso?
+6. Você teria disponibilidade para escrever comentários ou resoluções explicadas nas questões da sua área?
+7. Que indicadores ou relatórios ajudariam você a avaliar o nível de preparação da turma antes da prova oficial?
+8. Quais cuidados ou restrições o sistema precisa ter em relação ao acesso e à privacidade dos dados de desempenho dos alunos?
 
 ---
 
