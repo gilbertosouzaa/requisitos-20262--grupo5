@@ -1,0 +1,162 @@
+{% extends "base_app.html" %}
+
+{% set ativo = "simulados" %}
+
+{% block title %}{{ titulo_resultado }} — Apoio ENADE{% endblock %}
+
+{% block content %}
+<main class="container" style="padding-top: 32px; padding-bottom: 56px; display: flex; flex-direction: column; gap: 28px;">
+  
+  <!-- Cabeçalho do Resultado -->
+  <div style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: flex-end;">
+    <div style="flex: 1 1 360px;">
+      <span class="text-muted" style="font-size: 0.9375rem;">Simulado entregue em {{ data_entrega_str }}</span>
+      <h1 style="margin: 4px 0 0; font-size: clamp(1.8rem, 3.5vw, 2.2rem);">{{ titulo_resultado }}</h1>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+      <a class="btn btn-secondary" href="{{ url_for('main.desempenho') }}">Ver meu desempenho</a>
+      <a class="btn btn-primary" href="{{ url_for('main.novo_simulado') }}">Novo simulado</a>
+    </div>
+  </div>
+
+  <!-- Resumo Geral em KPIs (RF14, RN08) -->
+  <section aria-label="Resumo do desempenho" class="kpi-grid">
+    <div class="kpi-card highlight">
+      <b>{{ percentual_acerto }}%</b>
+      <span style="font-size: 0.9375rem;">de acerto</span>
+      <span class="text-muted" style="font-size: 0.8125rem;">
+        {{ objetivas_corretas }} corretas &divide; {{ objetivas_respondidas }} objetivas respondidas
+      </span>
+    </div>
+    <div class="kpi-card">
+      <b>{{ objetivas_corretas }}</b>
+      <span style="font-size: 0.9375rem;">acertos</span>
+    </div>
+    <div class="kpi-card">
+      <b>{{ objetivas_erradas }}</b>
+      <span style="font-size: 0.9375rem;">erros</span>
+    </div>
+    <div class="kpi-card">
+      <b>{{ objetivas_em_branco }}</b>
+      <span style="font-size: 0.9375rem;">objetivas em branco</span>
+    </div>
+    <div class="kpi-card">
+      <b>{{ tempo_utilizado }}</b>
+      <span style="font-size: 0.9375rem;">tempo utilizado</span>
+      <span class="text-muted" style="font-size: 0.8125rem;">de {{ tempo_total }}</span>
+    </div>
+  </section>
+
+  <!-- Duas Colunas: Desempenho por Área e Discursivas -->
+  <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;">
+    
+    <!-- Coluna 1: Acerto por Área (RN09) -->
+    <section style="flex: 1 1 460px; border: 1.5px solid var(--color-border); border-radius: 12px; padding: 22px; display: flex; flex-direction: column; gap: 14px; background: #ffffff;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+        <h2 style="margin: 0; font-size: 1.25rem;">Acerto por área</h2>
+        <span class="text-muted" style="font-size: 0.875rem;">Da mais fraca para a mais forte</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        {% for a in areas %}
+          <div style="display: grid; grid-template-columns: minmax(130px, 180px) 1fr 90px; gap: 12px; align-items: center; font-size: 0.875rem;">
+            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ a.nome }}">
+              {{ a.nome }}
+            </span>
+            <div class="progress-bar-wrap" role="progressbar" aria-valuenow="{{ a.pct }}" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-bar-fill" style="width: {{ a.pct }}%;"></div>
+            </div>
+            <span><strong>{{ a.pct }}%</strong> <span class="text-muted">({{ a.frac }})</span></span>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Coluna 2: Discursivas · autoavaliação (RF07, US16) -->
+    <section style="flex: 1 1 360px; border: 1.5px solid var(--color-border); border-radius: 12px; padding: 22px; display: flex; flex-direction: column; gap: 12px; background: #ffffff;">
+      <h2 style="margin: 0; font-size: 1.25rem;">Discursivas &middot; autoavalia&ccedil;&atilde;o</h2>
+      <p class="text-muted" style="margin: 0; font-size: 0.875rem; line-height: 1.45;">
+        {{ discursivas_respondidas }} de {{ discursivas_total }} respondidas. N&atilde;o entram no percentual. Compare sua resposta com o padr&atilde;o do INEP.
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        {% for d in discursivas_lista %}
+          {% if d.respondida %}
+            <a href="{{ url_for('main.revisao_questao_simulado', id=simulado.id, questao_id=d.questao_id) }}"
+               style="display: flex; justify-content: space-between; align-items: center; border: 1.5px solid #555555; border-radius: 8px; padding: 10px 14px; text-decoration: none; color: inherit; background: #ffffff;">
+              <span>Quest&atilde;o {{ d.numero }} &middot; {{ d.componente }}</span>
+              <strong style="font-size: 0.875rem;">Comparar &rsaquo;</strong>
+            </a>
+          {% else %}
+            <div style="display: flex; justify-content: space-between; align-items: center; border: 1.5px dashed var(--color-border-subtle); border-radius: 8px; padding: 10px 14px; color: var(--color-text-muted); background: var(--color-bg-subtle); font-size: 0.875rem;">
+              <span>Quest&atilde;o {{ d.numero }} &middot; {{ d.componente }} (em branco)</span>
+              <a href="{{ url_for('main.revisao_questao_simulado', id=simulado.id, questao_id=d.questao_id) }}" style="font-weight: 600;">Ver padr&atilde;o &rsaquo;</a>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Tabela de Correção Questão a Questão (US08) -->
+  <section style="display: flex; flex-direction: column; gap: 14px;">
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;">
+      <h2 style="margin: 0; font-size: 1.25rem;">Correção questão a questão</h2>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <label for="filtro-tabela" class="text-muted" style="font-size: 0.875rem;">Mostrar:</label>
+        <select id="filtro-tabela" class="form-input" style="min-height: 40px; padding: 0 10px; width: auto; font-size: 0.875rem;">
+          <option value="todas">Todas</option>
+          <option value="erros">S&oacute; erros</option>
+          <option value="em_branco">Em branco</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="custom-table-container">
+      <table class="custom-table" id="tabela-correcao" aria-label="Tabela de correção questão a questão">
+        <thead>
+          <tr>
+            <th style="width: 60px;">N&ordm;</th>
+            <th>&Aacute;rea</th>
+            <th>Sua resposta</th>
+            <th>Gabarito</th>
+            <th>Situa&ccedil;&atilde;o</th>
+            <th style="text-align: right; width: 140px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in linhas_tabela %}
+            <tr class="linha-questao"
+                data-situacao="{% if r.situacao == 'Acertou' %}acertou{% elif r.situacao == 'Errou' %}errou{% elif r.situacao == 'Em branco' %}em_branco{% else %}respondida{% endif %}">
+              <td><strong>{{ r.numero }}</strong></td>
+              <td>{{ r.area }}</td>
+              <td>{{ r.sua_resposta }}</td>
+              <td>{{ r.gabarito }}</td>
+              <td>
+                <span class="status-pill {% if r.situacao == 'Acertou' %}status-acertou{% elif r.situacao == 'Errou' %}status-errou{% elif r.situacao == 'Em branco' %}status-nao-respondida{% else %}status-respondida{% endif %}">
+                  {{ r.situacao }}
+                </span>
+              </td>
+              <td style="text-align: right;">
+                <a href="{{ url_for('main.revisao_questao_simulado', id=simulado.id, questao_id=r.questao_id) }}" style="font-weight: 600; font-size: 0.875rem;">
+                  Ver corre&ccedil;&atilde;o &rsaquo;
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    
+    <div id="resumo-linhas-visiveis" class="text-muted" style="font-size: 0.8125rem;">
+      Mostrando {{ linhas_tabela|length }} quest&otilde;es
+    </div>
+  </section>
+
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/resultado.js') }}"></script>
+{% endblock %}

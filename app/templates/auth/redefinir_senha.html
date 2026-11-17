@@ -1,0 +1,51 @@
+{% extends "base_publica.html" %}
+
+{% block title %}Criar nova senha — Apoio ENADE{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 520px; padding-top: 48px; padding-bottom: 64px;">
+  <div class="card-form">
+    <span class="status-pill">Nova Senha</span>
+    <h1 style="font-size: 1.75rem; margin-bottom: 12px;">Definir nova senha</h1>
+    <p class="text-muted" style="margin-bottom: 24px; font-size: 0.95rem;">
+      Crie uma nova senha de acesso para a sua conta (m&iacute;nimo de 8 caracteres).
+    </p>
+
+    <form method="POST" action="{{ url_for('auth.redefinir_senha', token=token) }}" novalidate id="form-redefinir">
+      {{ form.hidden_tag() }}
+
+      <!-- Nova senha -->
+      <div class="form-group">
+        <label class="form-label" for="nova_senha">Nova senha</label>
+        {{ form.nova_senha(id="nova_senha", class="form-control" + (" is-invalid" if form.nova_senha.errors else ""), required=True) }}
+        <span class="form-hint">M&iacute;nimo de 8 caracteres</span>
+        {% if form.nova_senha.errors %}
+          <div class="form-error" role="alert">{{ form.nova_senha.errors[0] }}</div>
+        {% endif %}
+      </div>
+
+      <!-- Confirmação da nova senha -->
+      <div class="form-group">
+        <label class="form-label" for="confirma_senha">Confirma&ccedil;&atilde;o da nova senha</label>
+        {{ form.confirma_senha(id="confirma_senha", class="form-control" + (" is-invalid" if form.confirma_senha.errors else ""), required=True) }}
+        {% if form.confirma_senha.errors %}
+          <div class="form-error" role="alert">{{ form.confirma_senha.errors[0] }}</div>
+        {% endif %}
+        <div id="confirma-cliente-erro" class="form-error" role="alert" style="display: none;"></div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top: 12px; margin-bottom: 16px;">
+        Salvar nova senha
+      </button>
+
+      <div style="text-align: center;">
+        <a href="{{ url_for('auth.login') }}" style="font-size: 0.95rem;">Cancelar e voltar para o login</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/redefinir_senha.js') }}"></script>
+{% endblock %}

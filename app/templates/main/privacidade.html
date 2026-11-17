@@ -1,0 +1,19 @@
+{% extends "base_app.html" if current_user.is_authenticated else "base_publica.html" %}
+
+{% block title %}Política de Privacidade — Apoio ENADE{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px; padding-top: 48px; padding-bottom: 64px;">
+  <h1 style="margin-bottom: 24px;">Pol&iacute;tica de Privacidade</h1>
+  <div class="card" style="line-height: 1.7;">
+    <h3>1. Conformidade com a LGPD (RNF04)</h3>
+    <p>O tratamento de dados pessoais no Apoio ENADE segue rigorosamente as diretrizes da Lei Geral de Prote&ccedil;&atilde;o de Dados (Lei n&ordm; 13.709/2018). Coletamos apenas os dados estritamente necess&aacute;rios para o funcionamento do sistema: nome completo, e-mail, senha criptografada e curso.</p>
+
+    <h3>2. Privacidade dos Resultados</h3>
+    <p>Os resultados individuais de simulados, resolu&ccedil;&otilde;es de quest&otilde;es e m&eacute;tricas de desempenho s&atilde;o estritamente confidenciais e vis&iacute;veis unicamente pelo pr&oacute;prio estudante titular da conta.</p>
+
+    <h3>3. Armazenamento e Criptografia (RNF03)</h3>
+    <p>Todas as senhas s&atilde;o armazenadas na base de dados utilizando algoritmo criptogr&aacute;fico seguro com hash <strong>bcrypt</strong> e salt individualizado, inviabilizando qualquer acesso &agrave; senha original em texto puro.</p>
+  </div>
+</div>
+{% endblock %}

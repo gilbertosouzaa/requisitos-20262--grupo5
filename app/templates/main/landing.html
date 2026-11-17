@@ -1,0 +1,90 @@
+{% extends "base_publica.html" %}
+
+{% block title %}Apoio ENADE — Prepare-se para o ENADE com questões anteriores{% endblock %}
+
+{% block content %}
+<div class="container">
+  <!-- Hero Section -->
+  <section class="two-column-split hero-section">
+    <div class="column-info">
+      <h1>Prepare-se para o ENADE com quest&otilde;es de provas anteriores</h1>
+      <p class="text-muted" style="font-size: 1.15rem; line-height: 1.5;">
+        Pratique por &aacute;rea, fa&ccedil;a simulados no tempo real da prova e descubra onde precisa melhorar antes do dia do exame.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="{{ url_for('auth.cadastro') }}">Criar conta gr&aacute;tis</a>
+        <a class="btn btn-secondary" href="{{ url_for('main.questoes') }}">Explorar quest&otilde;es sem login</a>
+      </div>
+    </div>
+
+    <div class="column-card">
+      <div class="placeholder-box" style="min-height: 320px;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-bottom: 12px;">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="3" y1="9" x2="21" y2="9"></line>
+          <line x1="9" y1="21" x2="9" y2="9"></line>
+        </svg>
+        <strong>[ ilustra&ccedil;&atilde;o / captura da tela de simulado ]</strong>
+        <span class="text-muted" style="font-size: 0.85rem; margin-top: 6px;">Visualiza&ccedil;&atilde;o interativa de simulados e quest&otilde;es comentadas</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Como Funciona Section -->
+  <section id="como-funciona" style="padding-top: 32px; padding-bottom: 64px;">
+    <h2 class="section-title">Como funciona</h2>
+    <p class="text-muted" style="font-size: 1.05rem; margin-bottom: 24px;">
+      Ferramentas desenvolvidas sob medida para a sua rotina de estudos at&eacute; o dia da prova.
+    </p>
+
+    <div class="features-grid">
+      <!-- Card 1 -->
+      <div class="card">
+        <div class="card-icon" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+        </div>
+        <h3 style="margin-bottom: 8px;">Banco de quest&otilde;es</h3>
+        <p class="text-muted" style="margin-bottom: 0;">
+          Quest&otilde;es de edi&ccedil;&otilde;es anteriores filtradas por ano, curso, componente e &aacute;rea de conhecimento.
+        </p>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="card">
+        <div class="card-icon" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </div>
+        <h3 style="margin-bottom: 8px;">Simulados cronometrados</h3>
+        <p class="text-muted" style="margin-bottom: 0;">
+          Prova completa de 40 quest&otilde;es em 4 horas ou simulados parciais para treinar no ritmo real do exame.
+        </p>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="card">
+        <div class="card-icon" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+        </div>
+        <h3 style="margin-bottom: 8px;">Desempenho por &aacute;rea</h3>
+        <p class="text-muted" style="margin-bottom: 0;">
+          Veja seu percentual de acertos por conte&uacute;do e saiba exatamente onde direcionar sua revis&atilde;o.
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/landing.js') }}"></script>
+{% endblock %}

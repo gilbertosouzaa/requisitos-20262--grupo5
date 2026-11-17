@@ -1,0 +1,224 @@
+{% extends "base_app.html" %}
+
+{% set ativo = "simulados" %}
+
+{% block title %}Questão {{ questao.numero }} · Revisão do Simulado — Apoio ENADE{% endblock %}
+
+{% block content %}
+<main class="container" style="padding-top: 24px; padding-bottom: 56px; display: flex; flex-direction: column; gap: 24px;">
+
+  <!-- Trilha de Navegação (Breadcrumb) -->
+  <nav aria-label="Trilha de navegação" style="font-size: 0.9375rem;">
+    <ol style="display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 0; align-items: center;">
+      <li><a href="{{ url_for('main.novo_simulado') }}">Simulados</a></li>
+      <li aria-hidden="true" class="text-muted">&rsaquo;</li>
+      <li><a href="{{ url_for('main.resultado_simulado', id=simulado.id) }}">Resultado</a></li>
+      <li aria-hidden="true" class="text-muted">&rsaquo;</li>
+      <li class="text-muted" aria-current="page">Quest&atilde;o {{ ordem }} de {{ total_q }} &middot; ENADE {{ questao.ano }}</li>
+    </ol>
+  </nav>
+
+  <!-- Layout em 2 Colunas -->
+  <div style="display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start;">
+
+    <!-- Coluna Principal -->
+    <article style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+      
+      <!-- Cabeçalho -->
+      <div>
+        <h1 style="margin: 0; font-size: 1.5rem;">
+          Quest&atilde;o {{ ordem }}
+          <span class="text-muted" style="font-weight: 400; font-size: 1.15rem;">de {{ total_q }} (ENADE {{ questao.ano }} &middot; N&ordm; {{ questao.numero }})</span>
+        </h1>
+        <p class="text-muted" style="margin: 4px 0 0; font-size: 0.9375rem;">
+          {% if questao.componente == 'formacao_geral' %}Forma&ccedil;&atilde;o Geral{% else %}Componente Espec&iacute;fico{% endif %} &middot;
+          {{ questao.area }} &middot;
+          {% if questao.tipo == 'objetiva' %}Objetiva{% else %}Discursiva{% endif %}
+        </p>
+      </div>
+
+      <!-- Faixa de Resultado / Correção (T07b / US06) -->
+      {% if questao.tipo == 'objetiva' %}
+        {% set marcada = resposta.alternativa_marcada if resposta else None %}
+        {% if marcada and marcada == questao.gabarito_oficial %}
+          <div class="result-banner result-banner-success" role="status">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <div>
+              <strong>Você acertou!</strong>
+              <div style="font-size: 0.875rem; margin-top: 2px;">Sua resposta foi {{ marcada }}, que é o gabarito oficial.</div>
+            </div>
+          </div>
+        {% elif marcada %}
+          <div class="result-banner result-banner-error" role="status">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="15" y1="9" x2="9" y2="15"></line>
+              <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+            <div>
+              <strong>Você errou.</strong>
+              <div style="font-size: 0.875rem; margin-top: 2px;">Sua resposta: <strong>{{ marcada }}</strong> · Alternativa correta: <strong>{{ questao.gabarito_oficial }}</strong></div>
+            </div>
+          </div>
+        {% else %}
+          <div class="result-banner" style="background-color: var(--color-bg-subtle);" role="status">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <div>
+              <strong>Questão deixada em branco no simulado.</strong>
+              <div style="font-size: 0.875rem; margin-top: 2px;">Alternativa correta: <strong>{{ questao.gabarito_oficial }}</strong></div>
+            </div>
+          </div>
+        {% endif %}
+      {% endif %}
+
+      <!-- Enunciado -->
+      <div style="font-size: 1.05rem; line-height: 1.6;">
+        {{ questao.enunciado }}
+      </div>
+
+      <!-- Imagem (arquivo ou placeholder se houver) -->
+      {% if questao.imagem_arquivo %}
+        <div style="margin: 16px 0;">
+          <img src="{{ url_for('admin.uploaded_file', filename=questao.imagem_arquivo) }}"
+               alt="{{ questao.imagem_descricao or 'Imagem da questão' }}"
+               style="max-width: 100%; height: auto; border: 1px solid var(--color-border); border-radius: 8px;">
+        </div>
+      {% elif questao.imagem_placeholder %}
+        <div class="image-placeholder-box" style="padding: 24px; text-align: center; border: 1.5px dashed var(--color-border-subtle); background: var(--color-bg-subtle); border-radius: 8px;">
+          <span>{{ questao.imagem_placeholder }}</span>
+        </div>
+      {% endif %}
+
+      <!-- Alternativas Objetivas com Gabarito -->
+      {% if questao.tipo == 'objetiva' %}
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          {% for alt in questao.alternativas %}
+            {% set is_correta = (alt.letra == questao.gabarito_oficial) %}
+            {% set is_marcada = (resposta and resposta.alternativa_marcada == alt.letra) %}
+
+            <div style="border: 2px solid {% if is_correta %}var(--color-success-border){% elif is_marcada %}var(--color-danger-border){% else %}var(--color-border-subtle){% endif %};
+                        background-color: {% if is_correta %}var(--color-success-bg){% elif is_marcada %}var(--color-danger-bg){% else %}#ffffff{% endif %};
+                        border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; gap: 12px; align-items: flex-start;">
+                <b style="width: 24px; font-size: 1.05rem;">{{ alt.letra }}</b>
+                <span style="flex: 1; font-size: 1rem;">{{ alt.texto }}</span>
+                {% if is_correta %}
+                  <span class="status-pill status-acertou" style="margin-left: auto;">Correta</span>
+                {% elif is_marcada %}
+                  <span class="status-pill status-errou" style="margin-left: auto;">Sua resposta</span>
+                {% endif %}
+              </div>
+
+              {% if questao.comentario_status == 'publicado' and is_marcada and not is_correta and alt.comentario_erro and alt.comentario_erro.strip() %}
+                <div style="margin-top: 4px; padding-top: 8px; border-top: 1px dashed rgba(0,0,0,0.15); font-size: 0.875rem; color: var(--color-danger-text);">
+                  <strong>Por que está incorreta:</strong> {{ alt.comentario_erro }}
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <!-- Questão Discursiva: Resposta do Usuário e Padrão do INEP -->
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div style="border: 1.5px solid var(--color-border); border-radius: 10px; padding: 16px; background: #ffffff;">
+            <strong style="display: block; margin-bottom: 6px;">Sua resposta no simulado:</strong>
+            {% if resposta and resposta.texto_resposta and resposta.texto_resposta.strip() %}
+              <div style="font-size: 0.9375rem; line-height: 1.5; white-space: pre-wrap;">{{ resposta.texto_resposta }}</div>
+            {% else %}
+              <span class="text-muted" style="font-style: italic;">Quest&atilde;o deixada em branco no simulado.</span>
+            {% endif %}
+          </div>
+
+          <div style="border: 2px solid var(--color-border); border-radius: 10px; padding: 18px; background: #fdfdfd;">
+            <strong style="display: block; font-size: 1.05rem; margin-bottom: 8px;">Padr&atilde;o de resposta esperado (INEP):</strong>
+            <div style="font-size: 0.95rem; line-height: 1.55; white-space: pre-wrap;">{{ questao.padrao_resposta or 'Padrão de resposta em elaboração.' }}</div>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Comentário do Professor / Gabarito Comentado (US06) -->
+      {% if questao.tipo == 'objetiva' %}
+        <section style="border: 1.5px solid var(--color-border); border-radius: 10px; padding: 20px; background: #ffffff; display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+          <h2 style="margin: 0; font-size: 1.15rem;">Gabarito comentado</h2>
+          {% if comentario_em_elaboracao %}
+            <p class="text-muted" style="margin: 0; font-size: 0.9375rem;">
+              Comentário em elaboração. Em breve estará disponível.
+            </p>
+          {% else %}
+            <div style="font-size: 0.95rem; line-height: 1.55; white-space: pre-wrap;">
+              <strong>Por que a {{ questao.gabarito_oficial }} está correta:</strong> {{ questao.comentario_correta }}
+            </div>
+            {% if questao.comentario_fonte and questao.comentario_fonte.strip() %}
+              <div style="font-size: 0.8125rem; color: var(--color-text-muted); border-top: 1px solid var(--color-border-subtle); padding-top: 8px; margin-top: 6px;">
+                <strong>Fonte:</strong> {{ questao.comentario_fonte }}
+              </div>
+            {% endif %}
+          {% endif %}
+        </section>
+      {% endif %}
+
+      <!-- Botões de Navegação -->
+      <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; border-top: 1.5px solid var(--color-border-subtle); padding-top: 20px; margin-top: 12px;">
+        <a class="btn btn-secondary" href="{{ url_for('main.resultado_simulado', id=simulado.id) }}">
+          &lsaquo; Voltar ao resultado
+        </a>
+        <div style="display: flex; gap: 10px;">
+          {% if anterior_id %}
+            <a class="btn btn-secondary" href="{{ url_for('main.revisao_questao_simulado', id=simulado.id, questao_id=anterior_id) }}">
+              &lsaquo; Anterior
+            </a>
+          {% endif %}
+          {% if proximo_id %}
+            <a class="btn btn-primary" href="{{ url_for('main.revisao_questao_simulado', id=simulado.id, questao_id=proximo_id) }}">
+              Pr&oacute;xima &rsaquo;
+            </a>
+          {% endif %}
+        </div>
+      </div>
+
+    </article>
+
+    <!-- Coluna Lateral: Sobre a questão -->
+    <aside style="flex: 1 1 260px; max-width: 320px; border: 1.5px solid var(--color-border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; background: #ffffff;">
+      <h2 style="margin: 0; font-size: 1.1rem;">Sobre a quest&atilde;o</h2>
+      
+      <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.875rem;">
+        <div>
+          <span class="text-muted" style="display: block; font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Edição</span>
+          <strong>ENADE {{ questao.ano }}</strong>
+        </div>
+        <div>
+          <span class="text-muted" style="display: block; font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Curso</span>
+          <strong>{{ questao.curso.nome if questao.curso else '' }}</strong>
+        </div>
+        <div>
+          <span class="text-muted" style="display: block; font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Componente</span>
+          <strong>{% if questao.componente == 'formacao_geral' %}Formação Geral{% else %}Componente Específico{% endif %}</strong>
+        </div>
+        <div>
+          <span class="text-muted" style="display: block; font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Área</span>
+          <strong>{{ questao.area }}</strong>
+        </div>
+        <div>
+          <span class="text-muted" style="display: block; font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Tipo</span>
+          <strong>{% if questao.tipo == 'objetiva' %}Objetiva (A–E){% else %}Discursiva{% endif %}</strong>
+        </div>
+      </div>
+
+      <div style="border-top: 1px solid var(--color-border-subtle); padding-top: 14px; margin-top: 4px;">
+        <a href="{{ url_for('main.discussao_questao', id=questao.id) }}" style="font-size: 0.875rem; font-weight: 600;">
+          F&oacute;rum de discuss&atilde;o desta quest&atilde;o &rsaquo;
+        </a>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+{% endblock %}

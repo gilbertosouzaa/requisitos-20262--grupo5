@@ -1,0 +1,19 @@
+{% extends "base_app.html" if current_user.is_authenticated else "base_publica.html" %}
+
+{% block title %}Termos de Uso — Apoio ENADE{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px; padding-top: 48px; padding-bottom: 64px;">
+  <h1 style="margin-bottom: 24px;">Termos de Uso</h1>
+  <div class="card" style="line-height: 1.7;">
+    <h3>1. Finalidade do Projeto</h3>
+    <p>O <strong>Apoio ENADE</strong> &eacute; um sistema com finalidade exclusivamente acad&ecirc;mica e educativa, desenvolvido para auxiliar estudantes na prepara&ccedil;&atilde;o para o Exame Nacional de Desempenho dos Estudantes (ENADE).</p>
+
+    <h3>2. Conte&uacute;do das Quest&otilde;es</h3>
+    <p>O banco de quest&otilde;es baseia-se em edi&ccedil;&otilde;es p&uacute;blicas anteriores divulgadas pelo INEP/MEC. Os textos de apoio e quest&otilde;es fict&iacute;cias criados para prototipagem s&atilde;o de cunho demonstrativo.</p>
+
+    <h3>3. Responsabilidades</h3>
+    <p>O usu&aacute;rio compromete-se a utilizar a plataforma para fins leg&iacute;timos de estudo e revis&atilde;o pedag&oacute;gica.</p>
+  </div>
+</div>
+{% endblock %}

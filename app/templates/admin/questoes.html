@@ -1,0 +1,295 @@
+{% extends "base_admin.html" %}
+
+{% block title %}Questões — Administração Apoio ENADE{% endblock %}
+
+{% block content %}
+<main class="container" style="padding-top: 32px; padding-bottom: 64px;">
+  
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div style="margin-bottom: 24px; display: flex; flex-direction: column; gap: 10px;">
+        {% for category, message in messages %}
+          <div class="alert-box {% if category == 'sucesso' %}alert-success{% elif category == 'erro' %}alert-danger{% else %}alert-info{% endif %}" role="alert">
+            <div>{{ message }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Cabeçalho T13: Título, Resumo KPIs e Botões Primários -->
+  <header class="admin-header-actions">
+    <div>
+      <h1 style="font-size: 1.75rem; margin: 0 0 6px;">Questões</h1>
+      <div class="admin-kpi-summary">
+        <span><strong>{{ total_cadastradas }}</strong> questões cadastradas</span>
+        <span>&middot;</span>
+        <span><strong style="color: #c5221f;">{{ total_anuladas }}</strong> anuladas</span>
+        <span>&middot;</span>
+        <span><strong style="color: #b06000;">{{ total_sem_comentario }}</strong> sem comentário</span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+      <a href="{{ url_for('admin.importar_questoes') }}" class="btn btn-secondary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        Importar edição (CSV)
+      </a>
+      <a href="{{ url_for('admin.nova_questao') }}" class="btn btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        + Nova questão
+      </a>
+    </div>
+  </header>
+
+  <!-- Filtros Acumulativos (GET) -->
+  <section class="card" style="margin-bottom: 24px; padding: 20px; background: #fafafa; border: 1.5px solid var(--color-border); border-radius: 10px;" aria-label="Filtros de questões">
+    <form method="GET" action="{{ url_for('admin.questoes') }}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; align-items: end;">
+      
+      <!-- Busca texto ou número -->
+      <div class="form-group" style="margin: 0;">
+        <label for="filtro-busca" style="font-weight: 600; font-size: 0.875rem;">Buscar</label>
+        <input type="text" id="filtro-busca" name="busca" value="{{ busca }}" placeholder="Nº ou trecho do enunciado..." class="form-control" style="background: #ffffff;">
+      </div>
+
+      <!-- Curso -->
+      <div class="form-group" style="margin: 0;">
+        <label for="filtro-curso" style="font-weight: 600; font-size: 0.875rem;">Curso</label>
+        <select id="filtro-curso" name="curso" class="form-control" style="background: #ffffff;">
+          <option value="">Todos os cursos</option>
+          {% for c in cursos %}
+            <option value="{{ c.id }}" {% if curso_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Ano -->
+      <div class="form-group" style="margin: 0;">
+        <label for="filtro-ano" style="font-weight: 600; font-size: 0.875rem;">Ano</label>
+        <select id="filtro-ano" name="ano" class="form-control" style="background: #ffffff;">
+          <option value="">Todos os anos</option>
+          {% for a in anos %}
+            <option value="{{ a }}" {% if ano == a %}selected{% endif %}>{{ a }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Área de Conhecimento -->
+      <div class="form-group" style="margin: 0;">
+        <label for="filtro-area" style="font-weight: 600; font-size: 0.875rem;">Área</label>
+        <select id="filtro-area" name="area" class="form-control" style="background: #ffffff;">
+          <option value="">Todas as áreas</option>
+          {% for ar in areas %}
+            <option value="{{ ar }}" {% if area == ar %}selected{% endif %}>{{ ar }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Situação -->
+      <div class="form-group" style="margin: 0;">
+        <label for="filtro-situacao" style="font-weight: 600; font-size: 0.875rem;">Situação</label>
+        <select id="filtro-situacao" name="situacao" class="form-control" style="background: #ffffff;">
+          <option value="todas" {% if situacao == 'todas' %}selected{% endif %}>Todas</option>
+          <option value="ativas" {% if situacao == 'ativas' %}selected{% endif %}>Ativas</option>
+          <option value="anuladas" {% if situacao == 'anuladas' %}selected{% endif %}>Anuladas</option>
+          <option value="sem_comentario" {% if situacao == 'sem_comentario' %}selected{% endif %}>Sem comentário</option>
+        </select>
+      </div>
+
+      <!-- Ações do Filtro -->
+      <div style="display: flex; gap: 8px;">
+        <button type="submit" class="btn btn-primary" style="flex: 1; min-height: 42px;">Filtrar</button>
+        <a href="{{ url_for('admin.questoes') }}" class="btn btn-secondary" style="min-height: 42px; display: inline-flex; align-items: center; justify-content: center;">Limpar</a>
+      </div>
+
+    </form>
+  </section>
+
+  <!-- Tabela de Questões -->
+  <div class="custom-table-container">
+    <table class="custom-table" aria-label="Lista de questões cadastradas">
+      <thead>
+        <tr>
+          <th scope="col" style="width: 50px;">#</th>
+          <th scope="col">Curso</th>
+          <th scope="col" style="width: 70px;">Ano</th>
+          <th scope="col">Componente</th>
+          <th scope="col">Área</th>
+          <th scope="col" style="width: 90px;">Tipo</th>
+          <th scope="col" style="width: 70px; text-align: center;">Gab.</th>
+          <th scope="col">Status</th>
+          <th scope="col" style="width: 170px; text-align: right;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if questoes %}
+          {% for q in questoes %}
+            <tr>
+              <td style="font-weight: 700;">{{ q.numero }}</td>
+              <td>{{ q.curso.nome }}</td>
+              <td>{{ q.ano }}</td>
+              <td style="font-size: 0.875rem;">
+                {% if q.componente == 'formacao_geral' %}
+                  Formação Geral
+                {% else %}
+                  Específico
+                {% endif %}
+              </td>
+              <td style="font-size: 0.875rem;" title="{{ q.enunciado }}">{{ q.area }}</td>
+              <td>
+                <span style="font-size: 0.8125rem; font-weight: 600; text-transform: capitalize;">{{ q.tipo }}</span>
+              </td>
+              <td style="text-align: center; font-weight: 700;">
+                {% if q.tipo == 'objetiva' %}
+                  {{ q.gabarito_oficial }}
+                {% else %}
+                  <span style="font-size: 0.75rem; color: var(--color-text-muted);" title="Discursiva">DISC</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
+                  {% if q.anulada %}
+                    <span class="pill-status pill-anulada">Anulada</span>
+                  {% else %}
+                    <span class="pill-status pill-ativa">Ativa</span>
+                  {% endif %}
+
+                  {% if q.comentario_status != 'publicado' %}
+                    <span class="pill-status pill-sem-comentario" title="Comentário não publicado">Sem comentário</span>
+                  {% endif %}
+                </div>
+              </td>
+              <td style="text-align: right;">
+                <div style="display: inline-flex; align-items: center; gap: 6px;">
+                  <!-- Editar -->
+                  <a href="{{ url_for('admin.editar_questao', id=q.id) }}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8125rem; min-height: 32px;" title="Editar dados da questão">
+                    Editar
+                  </a>
+
+                  <!-- Comentário -->
+                  <a href="{{ url_for('admin.editar_comentario', id=q.id) }}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8125rem; min-height: 32px;" title="Editar gabarito comentado">
+                    Comentário
+                  </a>
+
+                  <!-- Menu de ações dropdown (...) -->
+                  <div class="dropdown-wrapper">
+                    <button type="button" class="btn-icon-menu btn-dropdown-toggle" aria-haspopup="true" aria-expanded="false" aria-label="Mais ações para a questão {{ q.numero }}">
+                      &hellip;
+                    </button>
+                    <div class="dropdown-menu" role="menu">
+                      <!-- Toggle Anular -->
+                      <form action="{{ url_for('admin.toggle_anular_questao', id=q.id) }}" method="POST" style="margin: 0;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="dropdown-item" role="menuitem">
+                          {% if q.anulada %}
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Desmarcar anulação
+                          {% else %}
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                            Marcar como anulada
+                          {% endif %}
+                        </button>
+                      </form>
+
+                      <!-- Duplicar -->
+                      <a href="{{ url_for('admin.nova_questao', duplicar=q.id) }}" class="dropdown-item" role="menuitem">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        Duplicar como nova
+                      </a>
+
+                      <!-- Remover -->
+                      <button type="button"
+                              class="dropdown-item text-danger btn-abrir-remover"
+                              role="menuitem"
+                              data-id="{{ q.id }}"
+                              data-numero="{{ q.numero }}"
+                              data-ano="{{ q.ano }}"
+                              data-anulada="{{ 1 if q.anulada else 0 }}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        Remover
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="9" style="text-align: center; padding: 48px 16px; color: var(--color-text-muted);">
+              Nenhuma questão encontrada com os filtros selecionados.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginação (20 em 20) -->
+  {% if pagination.pages > 1 %}
+    <nav class="pagination" aria-label="Navegação entre páginas de questões" style="margin-top: 24px; display: flex; justify-content: center; gap: 8px;">
+      {% if pagination.has_prev %}
+        <a class="btn btn-secondary" href="{{ url_for('admin.questoes', page=pagination.prev_num, busca=busca, curso=curso_id, ano=ano, area=area, situacao=situacao) }}">
+          &lsaquo; Anterior
+        </a>
+      {% endif %}
+
+      <span style="display: inline-flex; align-items: center; padding: 0 12px; font-size: 0.875rem; color: var(--color-text-muted);">
+        Página {{ pagination.page }} de {{ pagination.pages }}
+      </span>
+
+      {% if pagination.has_next %}
+        <a class="btn btn-secondary" href="{{ url_for('admin.questoes', page=pagination.next_num, busca=busca, curso=curso_id, ano=ano, area=area, situacao=situacao) }}">
+          Próxima &rsaquo;
+        </a>
+      {% endif %}
+    </nav>
+  {% endif %}
+
+</main>
+
+<!-- Modal Nativo <dialog> para Confirmação de Remoção / Anulação (T13) -->
+<dialog id="dialog-remover" class="confirm-dialog" aria-labelledby="dialog-remover-titulo">
+  <div style="display: flex; flex-direction: column; gap: 16px;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <h2 id="dialog-remover-titulo" style="font-size: 1.25rem; margin: 0;">Remover questão</h2>
+      <button type="button" class="btn-fechar-modal" id="btn-fechar-dialog" aria-label="Fechar janela" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; line-height: 1;">&times;</button>
+    </div>
+
+    <!-- Mensagem dinâmica preenchida pelo JavaScript -->
+    <div id="dialog-remover-conteudo" style="font-size: 0.95rem; line-height: 1.5;">
+      Carregando informações da questão...
+    </div>
+
+    <!-- Botões de Ação Dinâmicos -->
+    <div id="dialog-remover-acoes" style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px;">
+      <button type="button" class="btn btn-secondary" id="btn-cancelar-remover">Cancelar</button>
+    </div>
+
+  </div>
+</dialog>
+
+<!-- Form oculto para remoção -->
+<form id="form-remover-acao" method="POST" style="display: none;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+
+<!-- Form oculto para anular a partir do modal -->
+<form id="form-anular-modal" method="POST" style="display: none;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin_questoes.js') }}"></script>
+{% endblock %}

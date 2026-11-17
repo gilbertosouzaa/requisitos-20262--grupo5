@@ -1,0 +1,136 @@
+{% extends "base_admin.html" %}
+
+{% block title %}Fila de Comentários — Administração Apoio ENADE{% endblock %}
+
+{% block content %}
+<main class="container" style="padding-top: 32px; padding-bottom: 64px;">
+  
+  <header style="margin-bottom: 24px;">
+    <h1 style="font-size: 1.75rem; margin: 0 0 6px;">Fila de comentários</h1>
+    <p class="text-muted" style="margin: 0; font-size: 0.95rem;">
+      Questões que ainda não possuem gabarito comentado publicado para os estudantes. Priorize a redação e revisão dos comentários abaixo.
+    </p>
+  </header>
+
+  <!-- Filtros -->
+  <section class="card" style="margin-bottom: 24px; padding: 18px 20px; background: #fafafa; border: 1.5px solid var(--color-border); border-radius: 10px;" aria-label="Filtros da fila de comentários">
+    <form method="GET" action="{{ url_for('admin.comentarios') }}" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: end;">
+      
+      <!-- Curso -->
+      <div class="form-group" style="margin: 0; min-width: 220px;">
+        <label for="filtro-curso" style="font-weight: 600; font-size: 0.875rem;">Curso</label>
+        <select id="filtro-curso" name="curso" class="form-control" style="background: #ffffff;">
+          <option value="">Todos os cursos</option>
+          {% for c in cursos %}
+            <option value="{{ c.id }}" {% if curso_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Ano -->
+      <div class="form-group" style="margin: 0; min-width: 140px;">
+        <label for="filtro-ano" style="font-weight: 600; font-size: 0.875rem;">Ano</label>
+        <select id="filtro-ano" name="ano" class="form-control" style="background: #ffffff;">
+          <option value="">Todos os anos</option>
+          {% for a in anos %}
+            <option value="{{ a }}" {% if ano == a %}selected{% endif %}>{{ a }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Ações -->
+      <div style="display: flex; gap: 8px;">
+        <button type="submit" class="btn btn-primary" style="min-height: 42px;">Filtrar</button>
+        <a href="{{ url_for('admin.comentarios') }}" class="btn btn-secondary" style="min-height: 42px; display: inline-flex; align-items: center;">Limpar</a>
+      </div>
+
+    </form>
+  </section>
+
+  <!-- Tabela de Questões sem Comentário -->
+  <div class="custom-table-container">
+    <table class="custom-table" aria-label="Questões pendentes de comentário publicado">
+      <thead>
+        <tr>
+          <th scope="col" style="width: 50px;">#</th>
+          <th scope="col">Curso</th>
+          <th scope="col" style="width: 70px;">Ano</th>
+          <th scope="col">Componente</th>
+          <th scope="col">Área</th>
+          <th scope="col" style="width: 90px;">Tipo</th>
+          <th scope="col" style="width: 70px; text-align: center;">Gab.</th>
+          <th scope="col">Status comentário</th>
+          <th scope="col" style="width: 140px; text-align: right;">Ação</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if questoes %}
+          {% for q in questoes %}
+            <tr>
+              <td style="font-weight: 700;">{{ q.numero }}</td>
+              <td>{{ q.curso.nome }}</td>
+              <td>{{ q.ano }}</td>
+              <td style="font-size: 0.875rem;">
+                {% if q.componente == 'formacao_geral' %}
+                  Formação Geral
+                {% else %}
+                  Específico
+                {% endif %}
+              </td>
+              <td style="font-size: 0.875rem;">{{ q.area }}</td>
+              <td>
+                <span style="font-size: 0.8125rem; font-weight: 600; text-transform: capitalize;">{{ q.tipo }}</span>
+              </td>
+              <td style="text-align: center; font-weight: 700;">
+                {% if q.tipo == 'objetiva' %}
+                  {{ q.gabarito_oficial }}
+                {% else %}
+                  <span style="font-size: 0.75rem; color: var(--color-text-muted);">DISC</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="pill-status pill-rascunho">
+                  Rascunho / Sem comentário
+                </span>
+              </td>
+              <td style="text-align: right;">
+                <a href="{{ url_for('admin.editar_comentario', id=q.id) }}" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.8125rem; min-height: 32px;">
+                  Comentar &rsaquo;
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="9" style="text-align: center; padding: 48px 16px; color: var(--color-text-muted);">
+              Parabéns! Todas as questões selecionadas já possuem comentários publicados.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginação -->
+  {% if pagination.pages > 1 %}
+    <nav class="pagination" aria-label="Navegação entre páginas da fila de comentários" style="margin-top: 24px; display: flex; justify-content: center; gap: 8px;">
+      {% if pagination.has_prev %}
+        <a class="btn btn-secondary" href="{{ url_for('admin.comentarios', page=pagination.prev_num, curso=curso_id, ano=ano) }}">
+          &lsaquo; Anterior
+        </a>
+      {% endif %}
+
+      <span style="display: inline-flex; align-items: center; padding: 0 12px; font-size: 0.875rem; color: var(--color-text-muted);">
+        Página {{ pagination.page }} de {{ pagination.pages }}
+      </span>
+
+      {% if pagination.has_next %}
+        <a class="btn btn-secondary" href="{{ url_for('admin.comentarios', page=pagination.next_num, curso=curso_id, ano=ano) }}">
+          Próxima &rsaquo;
+        </a>
+      {% endif %}
+    </nav>
+  {% endif %}
+
+</main>
+{% endblock %}

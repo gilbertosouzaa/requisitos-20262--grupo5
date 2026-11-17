@@ -1,0 +1,48 @@
+{% extends "base_publica.html" %}
+
+{% block title %}Verifique seu e-mail — Apoio ENADE{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 520px; padding-top: 48px; padding-bottom: 64px;">
+  <div class="card-form" style="text-align: center;">
+    <div style="display: flex; justify-content: center; margin-bottom: 16px;">
+      <div class="card-icon" style="width: 56px; height: 56px; border-radius: 50%;" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+          <polyline points="22,6 12,13 2,6"></polyline>
+        </svg>
+      </div>
+    </div>
+
+    <h1 style="font-size: 1.75rem; margin-bottom: 14px;">Verifique seu e-mail</h1>
+
+    <div class="alert-box" role="status" style="text-align: left; margin-bottom: 24px;">
+      <svg class="alert-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+      </svg>
+      <div style="font-size: 0.95rem;">
+        Se <strong>{{ email }}</strong> estiver cadastrado, você vai receber um link para redefinir a senha. O link vale por <strong>1 hora</strong>.
+      </div>
+    </div>
+
+    <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 24px;">
+      Não encontrou a mensagem? Confira sua pasta de spam ou clique no botão abaixo para reenviar.
+    </p>
+
+    <!-- Formulário para Reenviar Link -->
+    <form method="POST" action="{{ url_for('auth.recuperar_senha') }}" style="margin-bottom: 16px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="email" value="{{ email }}">
+      <button type="submit" class="btn btn-secondary btn-block">
+        Reenviar link
+      </button>
+    </form>
+
+    <div>
+      <a href="{{ url_for('auth.login') }}" style="font-size: 0.95rem;">Voltar para o login</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

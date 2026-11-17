@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titulo_simulado }} — Apoio ENADE{% endblock %}
+
+{% block header %}
+<!-- Cabeçalho Próprio do Simulado (sem menu de navegação) -->
+<header class="simulado-header">
+  <div class="simulado-header-inner">
+    <!-- Título e Status de Salvamento Automático -->
+    <div style="flex: 1 1 280px;">
+      <strong style="font-size: 1.1rem; display: block;">{{ titulo_simulado }}</strong>
+      <div id="status-salvamento" class="text-muted" style="font-size: 0.875rem; display: flex; gap: 6px; align-items: center; margin-top: 3px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 12.5l4.5 4.5L19 7"></path>
+        </svg>
+        <span id="texto-status-salvamento">
+          {% if ultima_atualizacao %}
+            Respostas salvas automaticamente &agrave;s {{ ultima_atualizacao.strftime('%H:%M') }}
+          {% else %}
+            Respostas salvas automaticamente
+          {% endif %}
+        </span>
+      </div>
+    </div>
+
+    <!-- Cronômetro com role="timer" (RF10, RN05) -->
+    <div role="timer" aria-label="Tempo restante" class="timer-badge">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <circle cx="12" cy="13" r="8"></circle>
+        <path d="M12 9v4l2.5 2.5M9 2h6"></path>
+      </svg>
+      <div>
+        <div class="text-muted" style="font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">
+          TEMPO RESTANTE
+        </div>
+        <div id="cronometro-display" class="timer-digits">--:--:--</div>
+      </div>
+    </div>
+
+    <!-- Botões Sair e Entregar -->
+    <div style="display: flex; gap: 10px;">
+      <a class="btn btn-secondary" href="{{ url_for('main.inicio') }}" title="O tempo continua correndo">
+        Sair
+      </a>
+      <button type="button" class="btn btn-primary" id="btn-abrir-modal-entrega">
+        Entregar simulado
+      </button>
+    </div>
+  </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<main class="container" style="padding-top: 28px; padding-bottom: 48px; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start;">
+  
+  <!-- Coluna Principal: Questão Atual -->
+  <article id="area-questao" style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+    
+    <!-- Cabeçalho da Questão -->
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline;">
+      <h1 id="q-titulo" style="margin: 0; font-size: 1.5rem;">
+        Quest&atilde;o <span id="q-ordem">{{ ordem_atual }}</span>
+        <span class="text-muted" style="font-weight: 400; font-size: 1.15rem;">de {{ total_questoes }}</span>
+      </h1>
+      <span id="q-subtitulo" class="text-muted" style="font-size: 0.9375rem;">
+        {% if q_atual.componente == 'formacao_geral' %}Forma&ccedil;&atilde;o Geral{% else %}Componente Espec&iacute;fico{% endif %} &middot;
+        {{ q_atual.area }} &middot;
+        {% if q_atual.tipo == 'objetiva' %}Objetiva{% else %}Discursiva{% endif %}
+      </span>
+    </div>
+
+    <!-- Enunciado -->
+    <div id="q-enunciado" style="font-size: 1.05rem; line-height: 1.6;">
+      {{ q_atual.enunciado }}
+    </div>
+
+    <!-- Imagem Placeholder (se houver) -->
+    <div id="q-imagem-container" style="{% if not q_atual.imagem_placeholder %}display: none;{% endif %}">
+      <div class="image-placeholder-box" style="padding: 30px 20px; text-align: center; border: 1.5px dashed var(--color-border-subtle); background: var(--color-bg-subtle); border-radius: 8px;">
+        <span id="q-imagem-texto">{{ q_atual.imagem_placeholder or '' }}</span>
+      </div>
+    </div>
+
+    <!-- Área de Resposta: Alternativas A-E para Objetiva -->
+    <fieldset id="container-objetiva" style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; {% if q_atual.tipo != 'objetiva' %}display: none;{% endif %}">
+      <legend class="visually-hidden">Alternativas de resposta</legend>
+      <div id="lista-alternativas" style="display: flex; flex-direction: column; gap: 10px;">
+        {% for alt in q_atual.alternativas %}
+          {% set checked = (resposta_atual and resposta_atual.alternativa_marcada == alt.letra) %}
+          <label class="alt-label {% if checked %}selected{% endif %}" id="label-alt-{{ alt.letra }}" style="display: flex; gap: 14px; align-items: flex-start; min-height: 52px; padding: 14px 16px; border: 1.5px solid {% if checked %}var(--color-border){% else %}#555555{% endif %}; border-radius: 10px; cursor: pointer; background: {% if checked %}#ececec{% else %}#ffffff{% endif %};">
+            <input type="radio" name="alternativa" value="{{ alt.letra }}" {% if checked %}checked{% endif %} style="width: 20px; height: 20px; margin: 2px 0 0; flex: none; cursor: pointer;">
+            <b style="flex: none; width: 22px;">{{ alt.letra }}</b>
+            <span style="flex: 1;">{{ alt.texto }}</span>
+          </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <!-- Área de Resposta: Campo de Texto para Discursiva -->
+    <div id="container-discursiva" style="display: flex; flex-direction: column; gap: 10px; {% if q_atual.tipo != 'discursiva' %}display: none;{% endif %}">
+      <label class="form-label" for="discursiva-texto">Sua resposta discursiva:</label>
+      <textarea id="discursiva-texto" class="form-input" rows="8" placeholder="Digite sua resposta aqui..." style="font-family: inherit; font-size: 1rem; line-height: 1.5; resize: vertical;">{% if resposta_atual and resposta_atual.texto_resposta %}{{ resposta_atual.texto_resposta }}{% endif %}</textarea>
+      <span class="text-muted" style="font-size: 0.8125rem;">Suas altera&ccedil;&otilde;es s&atilde;o salvas automaticamente.</span>
+    </div>
+
+    <!-- Navegação entre questões -->
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; border-top: 1.5px solid var(--color-border-subtle); padding-top: 20px; margin-top: 10px;">
+      <button class="btn btn-secondary" type="button" id="btn-anterior">
+        &lsaquo; Anterior
+      </button>
+      <button type="button" id="btn-limpar" style="border: 0; background: none; font: inherit; text-decoration: underline; min-height: 44px; color: var(--color-text); cursor: pointer; padding: 0 12px;">
+        Limpar resposta
+      </button>
+      <button class="btn btn-primary" type="button" id="btn-proxima">
+        Pr&oacute;xima &rsaquo;
+      </button>
+    </div>
+
+    <!-- Fallback de navegação sem JS via GET -->
+    <noscript>
+      <div style="display: flex; gap: 10px; margin-top: 10px;">
+        {% if ordem_atual > 1 %}
+          <a class="btn btn-secondary" href="{{ url_for('main.ver_simulado', id=simulado.id, q=ordem_atual - 1) }}">&lsaquo; Anterior</a>
+        {% endif %}
+        {% if ordem_atual < total_questoes %}
+          <a class="btn btn-primary" href="{{ url_for('main.ver_simulado', id=simulado.id, q=ordem_atual + 1) }}">Próxima &rsaquo;</a>
+        {% endif %}
+      </div>
+    </noscript>
+
+  </article>
+
+  <!-- Coluna Lateral: Mapa de Questões -->
+  <aside aria-label="Mapa de questões" style="flex: 1 1 280px; max-width: 340px; border: 1.5px solid var(--color-border); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px; background: #ffffff;">
+    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+      <h2 style="margin: 0; font-size: 1.15rem;">Mapa de quest&otilde;es</h2>
+      <span style="font-size: 0.875rem;">
+        <strong id="mapa-respondidas-count">{{ respondidas_count }}</strong> de {{ total_questoes }} respondidas
+      </span>
+    </div>
+
+    <!-- Grade com as questões -->
+    <div id="mapa-grade" class="mapa-grid">
+      {% for item in mapa_itens %}
+        <button type="button"
+                class="mapa-cell {% if item.respondida %}answered{% endif %} {% if item.is_atual %}current{% endif %}"
+                data-ordem="{{ item.ordem }}"
+                data-questao-id="{{ item.questao_id }}"
+                id="cell-{{ item.ordem }}"
+                aria-label="Quest&atilde;o {{ item.ordem }}{% if item.respondida %}, respondida{% else %}, em branco{% endif %}{% if item.is_atual %}, atual{% endif %}">
+          {{ item.ordem }}
+        </button>
+      {% endfor %}
+    </div>
+
+    <!-- Legenda dos 3 estados visuais -->
+    <div style="display: flex; flex-direction: column; gap: 6px; font-size: 0.8125rem; border-top: 1px solid var(--color-border-subtle); padding-top: 10px;">
+      <span style="display: flex; gap: 8px; align-items: center;">
+        <span style="width: 16px; height: 16px; border-radius: 4px; background: var(--color-border);" aria-hidden="true"></span>
+        Respondida
+      </span>
+      <span style="display: flex; gap: 8px; align-items: center;">
+        <span style="width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid #555555; background: #ffffff;" aria-hidden="true"></span>
+        Em branco
+      </span>
+      <span style="display: flex; gap: 8px; align-items: center;">
+        <span style="width: 16px; height: 16px; border-radius: 4px; border: 3px solid var(--color-border); background: #e6e6e6;" aria-hidden="true"></span>
+        Quest&atilde;o atual
+      </span>
+    </div>
+
+    <p class="text-muted" style="margin: 0; font-size: 0.8125rem; line-height: 1.4;">
+      {% if simulado.tipo == 'completo' %}
+        Quest&otilde;es 1&ndash;8: Forma&ccedil;&atilde;o Geral (objetivas) &middot; 9&ndash;10: FG discursivas &middot; 11&ndash;35: Espec&iacute;fico (objetivas) &middot; 36&ndash;38: Espec&iacute;fico discursivas
+      {% else %}
+        Simulado personalizado de acordo com o componente e a &aacute;rea selecionados.
+      {% endif %}
+    </p>
+  </aside>
+
+</main>
+
+<!-- T10: Modal Nativo <dialog> Confirmar Entrega (RF12) -->
+<dialog id="modal-entrega" class="confirm-dialog" aria-labelledby="modal-titulo">
+  <div style="display: flex; flex-direction: column; gap: 16px;">
+    <h2 id="modal-titulo" style="margin: 0; font-size: 1.5rem;">Entregar simulado?</h2>
+    <p id="modal-desc" style="margin: 0; font-size: 1rem;">
+      Voc&ecirc; respondeu <strong id="modal-respondidas">{{ respondidas_count }} de {{ total_questoes }}</strong> quest&otilde;es
+      e ainda tem <strong id="modal-tempo-restante">--:--</strong> de prova.
+    </p>
+
+    <!-- Bloco de Questões em Branco -->
+    <div id="modal-em-branco-container" style="border: 1.5px solid var(--color-border); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; background: #ffffff;">
+      <strong style="font-size: 0.9375rem;">
+        <span id="modal-em-branco-count">{{ questoes_em_branco|length }}</span> quest&otilde;es em branco
+      </strong>
+      <div id="modal-em-branco-grade" style="display: flex; flex-wrap: wrap; gap: 8px;">
+        {% for num in questoes_em_branco %}
+          <button type="button" class="btn btn-secondary btn-goto-questao" data-ordem="{{ num }}" style="min-width: 48px; min-height: 38px; padding: 0 10px; font-size: 0.875rem;">
+            {{ num }}
+          </button>
+        {% endfor %}
+      </div>
+      <span class="text-muted" style="font-size: 0.8125rem;">Clique num n&uacute;mero para ir at&eacute; a quest&atilde;o.</span>
+    </div>
+
+    <!-- Aviso RN07 -->
+    <div style="display: flex; gap: 10px; align-items: flex-start; font-size: 0.875rem; line-height: 1.45;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="flex: none; margin-top: 1px;">
+        <path d="M12 3l9.5 17h-19z"></path>
+        <path d="M12 10v4M12 17v.5"></path>
+      </svg>
+      <span>Depois da entrega, n&atilde;o &eacute; poss&iacute;vel alterar as respostas. Voc&ecirc; poder&aacute; fazer um novo simulado.</span>
+    </div>
+
+    <!-- Botões do Modal -->
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; margin-top: 6px;">
+      <button type="button" class="btn btn-secondary" id="btn-modal-voltar">
+        Voltar &agrave; prova
+      </button>
+      <form id="form-finalizar-simulado" action="{{ url_for('main.simulado_finalizar_post', id=simulado.id) }}" method="POST" style="margin: 0;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="motivo" value="entrega">
+        <button type="button" class="btn btn-primary" id="btn-modal-confirmar">
+          Entregar agora
+        </button>
+      </form>
+    </div>
+  </div>
+</dialog>
+
+<!-- Configurações para o script do simulado -->
+<div id="simulado-config"
+     data-simulado-id="{{ simulado.id }}"
+     data-tempo-restante="{{ tempo_restante }}"
+     data-total-questoes="{{ total_questoes }}"
+     data-ordem-inicial="{{ ordem_atual }}"
+     data-csrf-token="{{ csrf_token() }}"
+     data-resultado-url="{{ url_for('main.resultado_simulado', id=simulado.id) }}"
+     style="display: none;"></div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/simulado.js') }}"></script>
+{% endblock %}

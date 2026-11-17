@@ -1,0 +1,33 @@
+{% extends "base_publica.html" %}
+
+{% block title %}Link expirado — Apoio ENADE{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 520px; padding-top: 48px; padding-bottom: 64px;">
+  <div class="card-form" style="text-align: center;">
+    <div style="display: flex; justify-content: center; margin-bottom: 16px;">
+      <div class="card-icon" style="width: 56px; height: 56px; border-radius: 50%;" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+    </div>
+
+    <span class="status-pill">Segurança</span>
+    <h1 style="font-size: 1.75rem; margin-bottom: 12px;">Este link expirou</h1>
+    <p class="text-muted" style="margin-bottom: 28px; font-size: 1rem; line-height: 1.5;">
+      Por segurança, o link de recuperação de senha é de uso único e vale por apenas <strong>1 hora</strong>. Solicite um novo link para continuar.
+    </p>
+
+    <a href="{{ url_for('auth.recuperar_senha') }}" class="btn btn-primary btn-block" style="margin-bottom: 16px;">
+      Pedir novo link
+    </a>
+
+    <div>
+      <a href="{{ url_for('auth.login') }}" style="font-size: 0.95rem;">Voltar para o login</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

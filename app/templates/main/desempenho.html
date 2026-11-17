@@ -1,0 +1,126 @@
+{% extends "base_app.html" %}
+
+{% set ativo = "desempenho" %}
+
+{% block title %}Meu desempenho — Apoio ENADE{% endblock %}
+
+{% block content %}
+<main class="container" style="padding-top: 32px; padding-bottom: 56px; display: flex; flex-direction: column; gap: 28px;">
+
+  <!-- Cabeçalho e Filtros (RF15, US09) -->
+  <div style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: flex-end;">
+    <div style="flex: 1 1 320px;">
+      <h1 style="margin: 0; font-size: clamp(1.8rem, 3.5vw, 2.2rem);">Meu desempenho</h1>
+      <p class="text-muted" style="margin: 4px 0 0; font-size: 1.05rem;">
+        Vis&iacute;vel s&oacute; para voc&ecirc;. Considera quest&otilde;es do modo estudo e dos simulados.
+      </p>
+    </div>
+
+    <!-- Filtros de Origem e Componente -->
+    <form id="form-filtros-desempenho" method="GET" action="{{ url_for('main.desempenho') }}" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <label for="origem" class="text-muted" style="font-size: 0.875rem;">Origem:</label>
+        <select id="origem" name="origem" class="form-input" style="min-height: 40px; padding: 0 10px; width: auto; font-size: 0.875rem;">
+          <option value="tudo" {% if origem == 'tudo' %}selected{% endif %}>Estudo + simulados</option>
+          <option value="simulados" {% if origem == 'simulados' %}selected{% endif %}>S&oacute; simulados</option>
+          <option value="estudo" {% if origem == 'estudo' %}selected{% endif %}>S&oacute; modo estudo</option>
+        </select>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <label for="componente" class="text-muted" style="font-size: 0.875rem;">Componente:</label>
+        <select id="componente" name="componente" class="form-input" style="min-height: 40px; padding: 0 10px; width: auto; font-size: 0.875rem;">
+          <option value="todos" {% if componente == 'todos' %}selected{% endif %}>Todos</option>
+          <option value="formacao_geral" {% if componente == 'formacao_geral' %}selected{% endif %}>Forma&ccedil;&atilde;o Geral</option>
+          <option value="especifico" {% if componente == 'especifico' %}selected{% endif %}>Espec&iacute;fico</option>
+        </select>
+      </div>
+    </form>
+  </div>
+
+  {% if tem_dados %}
+    <!-- Resumo Geral em KPIs (RN08) -->
+    <section aria-label="Resumo do desempenho geral" class="kpi-grid">
+      <div class="kpi-card highlight">
+        <b>{{ percentual_geral }}%</b>
+        <span style="font-size: 0.9375rem;">acerto geral</span>
+        <span class="text-muted" style="font-size: 0.8125rem;">corretas &divide; objetivas respondidas</span>
+      </div>
+      <div class="kpi-card">
+        <b>{{ total_respondidas }}</b>
+        <span style="font-size: 0.9375rem;">objetivas respondidas</span>
+      </div>
+      <div class="kpi-card">
+        <b>{{ total_simulados }}</b>
+        <span style="font-size: 0.9375rem;">simulados concluídos</span>
+      </div>
+      <div class="kpi-card">
+        <b>{{ total_em_branco }}</b>
+        <span style="font-size: 0.9375rem;">deixadas em branco</span>
+        <span class="text-muted" style="font-size: 0.8125rem;">contadas à parte</span>
+      </div>
+    </section>
+
+    <!-- Acerto por Área (RN09: da área mais fraca para a mais forte) -->
+    <section style="border: 1.5px solid var(--color-border); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 16px; background: #ffffff;">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline;">
+        <h2 style="margin: 0; font-size: 1.35rem;">Acerto por área</h2>
+        <span class="text-muted" style="font-size: 0.875rem;">Da área mais fraca para a mais forte</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        {% for a in areas %}
+          <div style="display: grid; grid-template-columns: minmax(140px, 200px) 1fr 60px minmax(120px, 160px) 120px; gap: 14px; align-items: center; font-size: 0.9375rem;">
+            <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ a.nome }}">
+              {{ a.nome }}
+            </span>
+            <div class="progress-bar-wrap" style="height: 18px;" role="progressbar" aria-label="{{ a.label }}" aria-valuenow="{{ a.pct }}" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-bar-fill" style="width: {{ a.pct }}%;"></div>
+            </div>
+            <strong>{{ a.pct }}%</strong>
+            <span class="text-muted" style="font-size: 0.875rem;">{{ a.qtd }}</span>
+            <a href="{{ url_for('main.questoes', area=a.nome) }}" style="font-size: 0.875rem; font-weight: 600; text-align: right;">
+              Estudar área &rsaquo;
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Histórico e Próximos Passos -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px;">
+      <!-- Evolução ao longo do tempo (RF16 P2 Placeholder) -->
+      <section style="border: 1.5px dashed var(--color-border-subtle); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 12px; background: #ffffff;">
+        <h2 style="margin: 0; font-size: 1.2rem;">Evolu&ccedil;&atilde;o ao longo do tempo</h2>
+        <div class="image-placeholder-box" style="height: 160px; display: flex; align-items: center; justify-content: center; border: 1.5px dashed var(--color-border-subtle); background: var(--color-bg-subtle); border-radius: 8px;">
+          <span class="text-muted">[ gr&aacute;fico de linha &middot; % de acerto por simulado ]</span>
+        </div>
+        <span class="text-muted" style="font-size: 0.8125rem;">
+          Hist&oacute;rico &middot; US13 / RF16 &middot; prioridade P2, fica para a pr&oacute;xima rodada
+        </span>
+      </section>
+    </div>
+
+  {% else %}
+    <!-- Estado Vazio (US09) -->
+    <section style="border: 1.5px dashed var(--color-border-subtle); border-radius: 12px; padding: 36px 28px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; background: #ffffff;">
+      <span style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; border: 1.5px dashed var(--color-border-subtle); border-radius: 4px; padding: 3px 8px; color: var(--color-text-muted);">
+        Estado vazio
+      </span>
+      <h2 style="margin: 0; font-size: 1.5rem;">Você ainda não respondeu nenhuma questão</h2>
+      <p class="text-muted" style="margin: 0; font-size: 1.05rem; line-height: 1.5;">
+        Responda algumas quest&otilde;es avulsas ou fa&ccedil;a um simulado para ver seu desempenho detalhado por &aacute;rea.
+      </p>
+      <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px;">
+        <a class="btn btn-primary" href="{{ url_for('main.questoes') }}">Come&ccedil;ar a estudar</a>
+        <a class="btn btn-secondary" href="{{ url_for('main.novo_simulado') }}">Fazer um simulado</a>
+      </div>
+    </section>
+  {% endif %}
+
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/desempenho.js') }}"></script>
+{% endblock %}

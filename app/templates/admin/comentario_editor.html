@@ -1,0 +1,221 @@
+{% extends "base_admin.html" %}
+
+{% block title %}Editor de Comentário — Questão {{ questao.numero }} — Administração Apoio ENADE{% endblock %}
+
+{% block content %}
+<main class="container" style="padding-top: 24px; padding-bottom: 64px;">
+  
+  <!-- Trilha de Navegação -->
+  <nav class="breadcrumb-nav" aria-label="Trilha de navegação" style="margin-bottom: 20px;">
+    <a href="{{ url_for('admin.questoes') }}">Questões</a>
+    <span aria-hidden="true">&rsaquo;</span>
+    <a href="{{ url_for('admin.editar_questao', id=questao.id) }}">Questão {{ questao.numero }} · ENADE {{ questao.ano }}</a>
+    <span aria-hidden="true">&rsaquo;</span>
+    <span aria-current="page">Comentário</span>
+  </nav>
+
+  <!-- Cabeçalho Informativo da Questão -->
+  <header class="card" style="margin-bottom: 24px; padding: 20px; border: 1.5px solid var(--color-border); border-radius: 10px; background: #fafafa;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <h1 style="font-size: 1.5rem; margin: 0 0 6px;">
+          Gabarito comentado da Questão {{ questao.numero }} · ENADE {{ questao.ano }}
+        </h1>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 0.875rem; color: var(--color-text-muted);">
+          <span><strong>Curso:</strong> {{ questao.curso.nome }}</span>
+          <span>&middot;</span>
+          <span><strong>Componente:</strong> {% if questao.componente == 'formacao_geral' %}Formação Geral{% else %}Específico{% endif %}</span>
+          <span>&middot;</span>
+          <span><strong>Área:</strong> {{ questao.area }}</span>
+          <span>&middot;</span>
+          <span><strong>Tipo:</strong> <span style="text-transform: capitalize;">{{ questao.tipo }}</span></span>
+          <span>&middot;</span>
+          <span>
+            <strong>Gabarito Oficial:</strong>
+            {% if questao.tipo == 'objetiva' %}
+              <span style="font-size: 1rem; color: var(--color-text); font-weight: 800;">Alternativa {{ questao.gabarito_oficial }}</span>
+            {% else %}
+              <span style="font-size: 0.875rem; color: var(--color-text); font-weight: 700;">Discursiva</span>
+            {% endif %}
+          </span>
+        </div>
+      </div>
+
+      <div>
+        <span class="pill-status {% if status_atual == 'publicado' %}pill-publicado{% else %}pill-rascunho{% endif %}" id="pill-status-atual">
+          Status: {% if status_atual == 'publicado' %}Publicado{% else %}Rascunho{% endif %}
+        </span>
+      </div>
+    </div>
+
+    <!-- Enunciado recolhível -->
+    <details style="margin-top: 14px; border-top: 1px dashed var(--color-border); padding-top: 12px;">
+      <summary style="font-weight: 600; font-size: 0.875rem; cursor: pointer; color: var(--color-primary);">
+        Ver enunciado completo da questão
+      </summary>
+      <div style="margin-top: 10px; font-size: 0.9375rem; line-height: 1.55; white-space: pre-wrap; background: #ffffff; padding: 14px; border: 1px solid var(--color-border); border-radius: 8px;">
+        {{ questao.enunciado }}
+        {% if questao.imagem_arquivo %}
+          <div style="margin-top: 12px;">
+            <img src="{{ url_for('admin.uploaded_file', filename=questao.imagem_arquivo) }}"
+                 alt="{{ questao.imagem_descricao or 'Figura da questão' }}"
+                 style="max-width: 100%; max-height: 250px; border-radius: 6px;">
+          </div>
+        {% elif questao.imagem_placeholder %}
+          <div class="placeholder-box" style="margin-top: 10px; min-height: 80px;">
+            [ {{ questao.imagem_placeholder }} ]
+          </div>
+        {% endif %}
+      </div>
+    </details>
+  </header>
+
+  <!-- Layout Split: Editor à Esquerda, Prévia em Tempo Real à Direita -->
+  <div class="editor-split-container">
+    
+    <!-- Coluna do Formulário de Edição -->
+    <form method="POST"
+          action="{{ url_for('admin.editar_comentario', id=questao.id) }}"
+          id="form-comentario"
+          style="display: flex; flex-direction: column; gap: 20px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <!-- Campo Principal: Por que a correta está correta / Padrão de Resposta -->
+      <section class="card" style="padding: 20px; border: 1.5px solid var(--color-border); border-radius: 10px; background: #ffffff;">
+        <label for="campo-comentario_correta" style="font-weight: 700; font-size: 0.95rem; display: block; margin-bottom: 6px;">
+          {% if questao.tipo == 'objetiva' %}
+            Por que a alternativa {{ questao.gabarito_oficial }} está correta <span style="color: var(--color-danger-text);">*</span>
+          {% else %}
+            Comentário sobre o padrão de resposta esperado <span style="color: var(--color-danger-text);">*</span>
+          {% endif %}
+        </label>
+        <p class="text-muted" style="margin: 0 0 10px; font-size: 0.8125rem;">
+          Explique com clareza o fundamento teórico ou raciocínio que valida o gabarito.
+        </p>
+        <textarea id="campo-comentario_correta"
+                  name="comentario_correta"
+                  rows="5"
+                  class="form-control"
+                  placeholder="Redija a explicação detalhada..."
+                  style="line-height: 1.5; font-family: inherit; font-size: 0.9375rem;"
+                  required>{{ comentario_correta }}</textarea>
+      </section>
+
+      <!-- Se objetiva: Campos opcionais para alternativas incorretas -->
+      {% if questao.tipo == 'objetiva' %}
+        <section class="card" style="padding: 20px; border: 1.5px solid var(--color-border); border-radius: 10px; background: #ffffff;">
+          <h2 style="font-size: 1rem; margin: 0 0 6px;">Por que as outras alternativas estão incorretas (opcional)</h2>
+          <p class="text-muted" style="margin: 0 0 14px; font-size: 0.8125rem;">
+            Preencha a justificativa de erro para enriquecer o estudo. Campos vazios não serão exibidos aos estudantes.
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            {% for alt in questao.alternativas %}
+              {% if alt.letra != questao.gabarito_oficial %}
+                <div class="form-group" style="margin: 0;">
+                  <label for="campo-erro_{{ alt.letra }}" style="font-weight: 600; font-size: 0.875rem;">
+                    Alternativa {{ alt.letra }}:
+                  </label>
+                  <div style="font-size: 0.8125rem; color: var(--color-text-muted); margin-bottom: 4px; max-height: 40px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    {{ alt.texto }}
+                  </div>
+                  <textarea id="campo-erro_{{ alt.letra }}"
+                            name="comentario_erro_{{ alt.letra }}"
+                            rows="2"
+                            class="form-control campo-comentario-erro"
+                            data-letra="{{ alt.letra }}"
+                            placeholder="Por que a alternativa {{ alt.letra }} é incorreta..."
+                            style="font-family: inherit; font-size: 0.875rem;">{{ alt.comentario_erro or '' }}</textarea>
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      <!-- Metadados: Fonte / Referência -->
+      <section class="card" style="padding: 20px; border: 1.5px solid var(--color-border); border-radius: 10px; background: #ffffff;">
+        <label for="campo-comentario_fonte" style="font-weight: 600; font-size: 0.875rem; display: block; margin-bottom: 6px;">
+          Fonte / referência (opcional)
+        </label>
+        <input type="text"
+               id="campo-comentario_fonte"
+               name="comentario_fonte"
+               class="form-control"
+               placeholder="Ex: SILBERSCHATZ, A. Sistemas de Banco de Dados, pág. 112 ou link oficial"
+               value="{{ comentario_fonte }}">
+      </section>
+
+      <!-- Status do Comentário -->
+      <section class="card" style="padding: 20px; border: 1.5px solid var(--color-border); border-radius: 10px; background: #ffffff;">
+        <span style="font-weight: 600; font-size: 0.875rem; display: block; margin-bottom: 8px;">
+          Visibilidade do comentário
+        </span>
+        <div style="display: flex; gap: 20px; align-items: center;">
+          <label style="display: inline-flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+            <input type="radio"
+                   name="comentario_status"
+                   id="status-rascunho"
+                   value="rascunho"
+                   {% if status_atual == 'rascunho' %}checked{% endif %}>
+            <strong>Rascunho</strong> (visível apenas para administradores)
+          </label>
+          <label style="display: inline-flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+            <input type="radio"
+                   name="comentario_status"
+                   id="status-publicado"
+                   value="publicado"
+                   {% if status_atual == 'publicado' %}checked{% endif %}>
+            <strong>Publicado</strong> (disponível para todos os estudantes)
+          </label>
+        </div>
+      </section>
+
+      <!-- Botões de Ação do Editor -->
+      <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+        <button type="submit"
+                name="action"
+                value="publicar"
+                class="btn btn-primary"
+                style="min-height: 44px; padding: 0 20px; font-weight: 700;">
+          Publicar comentário
+        </button>
+
+        <button type="submit"
+                name="action"
+                value="rascunho"
+                class="btn btn-secondary"
+                style="min-height: 44px; padding: 0 16px;">
+          Salvar como rascunho
+        </button>
+
+        <a href="{{ url_for('admin.questoes') }}" class="btn btn-secondary" style="min-height: 44px; padding: 0 16px;">
+          Voltar
+        </a>
+      </div>
+
+    </form>
+
+    <!-- Coluna da Prévia em Tempo Real (Visual do Estudante) -->
+    <aside style="position: sticky; top: 20px;" aria-label="Pré-visualização do gabarito comentado">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <h2 style="font-size: 1rem; margin: 0; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em;">
+          Prévia em tempo real
+        </h2>
+        <span style="font-size: 0.75rem; background: #e8f0fe; color: #1a73e8; padding: 2px 8px; border-radius: 4px; font-weight: 600;">
+          Visão do Estudante
+        </span>
+      </div>
+
+      <!-- Renderiza o partial com modo_previa=True para pré-carregar os elementos DOM -->
+      {% include "partials/gabarito_comentado.html" %}
+    </aside>
+
+  </div>
+
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin_comentario.js') }}"></script>
+{% endblock %}

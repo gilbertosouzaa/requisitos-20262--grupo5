@@ -1,0 +1,214 @@
+{% extends "base_admin.html" %}
+
+{% block title %}Importar Edição (CSV) — Administração Apoio ENADE{% endblock %}
+
+{% block content %}
+<main class="container" style="padding-top: 24px; padding-bottom: 64px;">
+  
+  <!-- Trilha de Navegação -->
+  <nav class="breadcrumb-nav" aria-label="Trilha de navegação" style="margin-bottom: 20px;">
+    <a href="{{ url_for('admin.questoes') }}">Questões</a>
+    <span aria-hidden="true">&rsaquo;</span>
+    <span aria-current="page">Importar edição (CSV)</span>
+  </nav>
+
+  <!-- Cabeçalho -->
+  <header style="margin-bottom: 24px;">
+    <h1 style="font-size: 1.75rem; margin: 0 0 6px;">Importação de questões via CSV</h1>
+    <p class="text-muted" style="margin: 0; font-size: 0.95rem;">
+      Carregue um arquivo CSV estruturado contendo as questões de uma edição do ENADE. A validação é integral e atômica.
+    </p>
+  </header>
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
+        {% for category, message in messages %}
+          <div class="alert-box {% if category == 'sucesso' %}alert-success{% elif category == 'erro' %}alert-danger{% else %}alert-info{% endif %}" role="alert">
+            <div>{{ message }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- CENÁRIO 1: Erros encontrados na validação do CSV -->
+  {% if erros_linhas %}
+    <section class="card" style="padding: 24px; border: 2px solid var(--color-danger-border); border-radius: 10px; background: #fffdfd; margin-bottom: 28px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c5221f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <h2 style="font-size: 1.25rem; margin: 0; color: var(--color-danger-text);">
+          Falha na validação do arquivo: nenhuma questão foi salva!
+        </h2>
+      </div>
+      <p style="margin: 0 0 16px; font-size: 0.9375rem; color: var(--color-text);">
+        Foram encontrados problemas em <strong>{{ erros_linhas|length }}</strong> linha(s) do CSV. Corrija os erros apontados na tabela abaixo e reenvie o arquivo:
+      </p>
+
+      <div class="custom-table-container">
+        <table class="custom-table" aria-label="Erros encontrados no CSV">
+          <thead>
+            <tr>
+              <th scope="col" style="width: 80px;">Linha</th>
+              <th scope="col" style="width: 240px;">Identificador</th>
+              <th scope="col">Erros encontrados</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in erros_linhas %}
+              <tr>
+                <td style="font-weight: 700; color: #c5221f;">{{ item.linha }}</td>
+                <td>{{ item.identificador }}</td>
+                <td>
+                  <ul style="margin: 0; padding-left: 18px; color: #c5221f; font-size: 0.875rem;">
+                    {% for erro in item.erros %}
+                      <li>{{ erro }}</li>
+                    {% endfor %}
+                  </ul>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top: 20px;">
+        <a href="{{ url_for('admin.importar_questoes') }}" class="btn btn-secondary">
+          Tentar novamente
+        </a>
+      </div>
+    </section>
+
+  <!-- CENÁRIO 2: Validação bem-sucedida, aguardando confirmação (Etapa 2) -->
+  {% elif questoes_validas %}
+    <section class="card" style="padding: 24px; border: 2px solid var(--color-success-border); border-radius: 10px; background: #fdfdfd; margin-bottom: 28px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#137333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <h2 style="font-size: 1.25rem; margin: 0; color: #137333;">
+          {{ questoes_validas|length }} questões válidas prontas para importar
+        </h2>
+      </div>
+
+      <p style="margin: 0 0 16px; font-size: 0.9375rem;">
+        Todas as questões foram validadas com sucesso conforme as regras de RN02. Clique no botão abaixo para confirmar a gravação definitiva no banco de dados. Os comentários entrarão inicialmente como <strong>rascunho</strong>.
+      </p>
+
+      <!-- Formulário de Confirmação -->
+      <form method="POST" action="{{ url_for('admin.importar_questoes') }}" style="display: flex; gap: 12px; margin-bottom: 20px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="confirmar" value="1">
+        <button type="submit" class="btn btn-primary" style="min-height: 44px; padding: 0 24px; font-weight: 700;">
+          Confirmar importação de {{ questoes_validas|length }} questões
+        </button>
+        <a href="{{ url_for('admin.importar_questoes') }}" class="btn btn-secondary" style="min-height: 44px; padding: 0 16px;">
+          Cancelar
+        </a>
+      </form>
+
+      <!-- Tabela de Pré-visualização -->
+      <div class="custom-table-container">
+        <table class="custom-table" aria-label="Pré-visualização das questões a importar">
+          <thead>
+            <tr>
+              <th scope="col" style="width: 50px;">#</th>
+              <th scope="col">Curso</th>
+              <th scope="col" style="width: 70px;">Ano</th>
+              <th scope="col">Componente</th>
+              <th scope="col">Área</th>
+              <th scope="col" style="width: 80px;">Tipo</th>
+              <th scope="col" style="width: 60px;">Gab.</th>
+              <th scope="col">Enunciado (resumo)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for q in questoes_validas %}
+              <tr>
+                <td style="font-weight: 700;">{{ q.numero }}</td>
+                <td>{{ q.curso }}</td>
+                <td>{{ q.ano }}</td>
+                <td style="font-size: 0.8125rem;">{{ q.componente }}</td>
+                <td style="font-size: 0.8125rem;">{{ q.area }}</td>
+                <td style="font-size: 0.8125rem; text-transform: capitalize;">{{ q.tipo }}</td>
+                <td style="font-weight: 700;">{{ q.gabarito }}</td>
+                <td style="font-size: 0.8125rem; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  {{ q.enunciado }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  <!-- CENÁRIO 3: Formulário Inicial de Upload (Etapa 1) -->
+  {% else %}
+    <div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 32px; align-items: start;">
+      
+      <!-- Formulário de Upload -->
+      <section class="card" style="padding: 24px; border: 1.5px solid var(--color-border); border-radius: 10px; background: #ffffff;">
+        <h2 style="font-size: 1.15rem; margin: 0 0 16px;">Selecione o arquivo CSV</h2>
+
+        <form method="POST" action="{{ url_for('admin.importar_questoes') }}" enctype="multipart/form-data" id="form-importar-csv">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="arquivo_csv" style="font-weight: 600; font-size: 0.875rem;">
+              Arquivo CSV <span style="color: var(--color-danger-text);">*</span>
+            </label>
+            <input type="file"
+                   id="arquivo_csv"
+                   name="arquivo_csv"
+                   accept=".csv, text/csv"
+                   class="form-control"
+                   style="padding: 8px 12px;"
+                   required>
+            <span class="text-muted" style="font-size: 0.8125rem; margin-top: 4px; display: block;">
+              Codificação recomendada: UTF-8.
+            </span>
+          </div>
+
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <button type="submit" class="btn btn-primary" style="min-height: 42px; padding: 0 20px;">
+              Enviar e validar arquivo
+            </button>
+            <a href="{{ url_for('admin.questoes') }}" class="btn btn-secondary" style="min-height: 42px; padding: 0 16px;">
+              Voltar
+            </a>
+          </div>
+        </form>
+      </section>
+
+      <!-- Instruções e Modelo de Exemplo -->
+      <aside class="card" style="padding: 20px; border: 1.5px solid var(--color-border); border-radius: 10px; background: #fafafa;">
+        <h2 style="font-size: 1rem; margin: 0 0 8px;">Modelo e Instruções</h2>
+        <p class="text-muted" style="margin: 0 0 14px; font-size: 0.875rem; line-height: 1.45;">
+          Para garantir o processamento correto, o arquivo CSV deve seguir estritamente o layout com os 15 campos obrigatórios:
+        </p>
+
+        <div style="font-family: monospace; font-size: 0.75rem; background: #ffffff; padding: 10px; border: 1px solid var(--color-border); border-radius: 6px; overflow-x: auto; margin-bottom: 16px;">
+          ano, curso, numero, componente, area, tipo, enunciado, alt_a, alt_b, alt_c, alt_d, alt_e, gabarito, padrao_resposta, anulada
+        </div>
+
+        <a href="{{ url_for('admin.baixar_exemplo_csv') }}" class="btn btn-secondary" style="width: 100%; display: inline-flex; justify-content: center; align-items: center; gap: 8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Baixar CSV de exemplo
+        </a>
+      </aside>
+
+    </div>
+  {% endif %}
+
+</main>
+{% endblock %}

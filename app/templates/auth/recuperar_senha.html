@@ -1,0 +1,39 @@
+{% extends "base_publica.html" %}
+
+{% block title %}Recuperar senha — Apoio ENADE{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 520px; padding-top: 48px; padding-bottom: 64px;">
+  <div class="card-form">
+    <span class="status-pill">Recupera&ccedil;&atilde;o de Senha</span>
+    <h1 style="font-size: 1.75rem; margin-bottom: 12px;">Esqueceu a senha?</h1>
+    <p class="text-muted" style="margin-bottom: 24px; font-size: 0.95rem;">
+      Informe o e-mail da sua conta cadastrada. Enviaremos um link de seguran&ccedil;a para voc&ecirc; criar uma nova senha.
+    </p>
+
+    <form method="POST" action="{{ url_for('auth.recuperar_senha') }}" novalidate id="form-recuperar">
+      {{ form.hidden_tag() }}
+
+      <div class="form-group">
+        <label class="form-label" for="email">E-mail</label>
+        {{ form.email(id="email", class="form-control" + (" is-invalid" if form.email.errors else ""), required=True) }}
+        {% if form.email.errors %}
+          <div class="form-error" role="alert">{{ form.email.errors[0] }}</div>
+        {% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top: 8px; margin-bottom: 16px;">
+        Enviar link
+      </button>
+
+      <div style="text-align: center;">
+        <a href="{{ url_for('auth.login') }}" style="font-size: 0.95rem;">Voltar para o login</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/recuperar_senha.js') }}"></script>
+{% endblock %}

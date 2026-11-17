@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>T12 Painel de desempenho</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.wf{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#1a1a1a;font-size:15px;line-height:1.45}
+.wf *{box-sizing:border-box}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 20px;border:2px solid #1a1a1a;border-radius:8px;background:#fff;color:#1a1a1a;font:inherit;font-weight:600;text-decoration:none;cursor:pointer}
+.btn-p{background:#1a1a1a;color:#fff}
+a.btn-p:hover{color:#fff}
+.ph{display:flex;align-items:center;justify-content:center;border:1.5px dashed #777;background:#f0f0f0;color:#555;font-size:13px;text-align:center}
+.muted{color:#555}
+.nl{padding:10px 14px;border-radius:6px;text-decoration:none;font-weight:500}
+.nl.on{background:#e6e6e6;font-weight:700}
+.kpi{border:1.5px solid #1a1a1a;border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:2px}
+.kpi b{font-size:32px;font-weight:800;line-height:1.1}
+.bar{height:22px;border:1.5px solid #1a1a1a;border-radius:4px;background:#fff;overflow:hidden}
+.bar>span{display:block;height:100%;background:#555}
+.inp{min-height:44px;padding:0 12px;border:1.5px solid #555;border-radius:6px;font:inherit;background:#fff;color:#1a1a1a}
+a{color:#1a1a1a}a:hover{color:#000}
+</style>
+</helmet>
+<div class="wf" style="min-height: 1000px; background: #ffffff">
+  <header style="border-bottom: 1.5px solid #1a1a1a">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 0 24px; min-height: 64px; display: flex; flex-wrap: wrap; align-items: center; gap: 24px">
+      <a href="T05-Inicio.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none">
+        <span class="ph" style="width: 32px; height: 32px; border-radius: 6px">logo</span>
+        <strong style="font-size: 18px">Apoio ENADE</strong>
+      </a>
+      <nav aria-label="Principal" style="display: flex; flex-wrap: wrap; gap: 4px; flex: 1">
+        <a class="nl" href="T05-Inicio.dc.html">Início</a>
+        <a class="nl" href="T06-Banco-questoes.dc.html">Questões</a>
+        <a class="nl" href="T08-Montar-simulado.dc.html">Simulados</a>
+        <a class="nl on" href="T12-Desempenho.dc.html" aria-current="page">Desempenho</a>
+      </nav>
+      <button type="button" style="display: flex; align-items: center; gap: 8px; min-height: 44px; border: 0; background: none; font: inherit; color: #1a1a1a; cursor: pointer">
+        <span class="ph" style="width: 34px; height: 34px; border-radius: 50%; font-weight: 700">AS</span>
+        Ana Souza
+      </button>
+    </div>
+  </header>
+
+  <main style="max-width: 1200px; margin: 0 auto; padding: 32px 24px 48px; display: flex; flex-direction: column; gap: 26px">
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end">
+      <div style="flex: 1 1 320px">
+        <h1 style="margin: 0; font-size: 30px">Meu desempenho</h1>
+        <p class="muted" style="margin: 4px 0 0">Visível só para você. Considera questões do modo estudo e dos simulados.</p>
+      </div>
+      <label for="origem" class="muted" style="font-size: 14px">Origem</label>
+      <select id="origem" class="inp"><option>Estudo + simulados</option><option>Só simulados</option><option>Só modo estudo</option></select>
+      <label for="comp" class="muted" style="font-size: 14px">Componente</label>
+      <select id="comp" class="inp"><option>Todos</option><option>Formação Geral</option><option>Específico</option></select>
+    </div>
+
+    <section aria-label="Resumo" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px">
+      <div class="kpi" style="border-width: 3px; background: #f5f5f5"><b>63%</b><span>acerto geral</span><span class="muted" style="font-size: 12px">corretas ÷ objetivas respondidas</span></div>
+      <div class="kpi"><b>214</b><span>objetivas respondidas</span></div>
+      <div class="kpi"><b>5</b><span>simulados concluídos</span></div>
+      <div class="kpi"><b>17</b><span>deixadas em branco</span><span class="muted" style="font-size: 12px">contadas à parte</span></div>
+    </section>
+
+    <section style="border: 1.5px solid #1a1a1a; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline">
+        <h2 style="margin: 0; font-size: 20px">Acerto por área</h2>
+        <span class="muted" style="font-size: 14px">Da área mais fraca para a mais forte</span>
+      </div>
+      <sc-for list="{{ areas }}" as="a" hint-placeholder-count="6">
+        <div style="display: grid; grid-template-columns: 200px 1fr 60px 150px 120px; gap: 14px; align-items: center">
+          <span>{{ a.nome }}</span>
+          <div class="bar" role="img" aria-label="{{ a.label }}"><span style="width: {{ a.pct }}%"></span></div>
+          <strong>{{ a.pct }}%</strong>
+          <span class="muted" style="font-size: 13px">{{ a.qtd }}</span>
+          <a href="T06-Banco-questoes.dc.html" style="font-size: 14px; font-weight: 600">Estudar área ›</a>
+        </div>
+      </sc-for>
+    </section>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px">
+      <section style="border: 1.5px dashed #777; border-radius: 12px; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+        <h2 style="margin: 0; font-size: 18px">Evolução ao longo do tempo</h2>
+        <div class="ph" style="height: 160px; border-radius: 8px">[ gráfico de linha · % de acerto por simulado ]</div>
+        <span class="muted" style="font-size: 13px">Histórico · US13 / RF16 · prioridade P2, fica para a próxima rodada</span>
+      </section>
+      <section style="border: 1.5px dashed #777; border-radius: 12px; padding: 22px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start">
+        <span style="font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; border: 1.5px dashed #555; border-radius: 4px; padding: 2px 8px">Estado vazio</span>
+        <h2 style="margin: 0; font-size: 18px">Você ainda não respondeu nenhuma questão</h2>
+        <p class="muted" style="margin: 0">Responda algumas questões ou faça um simulado para ver seu desempenho por área.</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px">
+          <a class="btn btn-p" href="T06-Banco-questoes.dc.html">Começar a estudar</a>
+          <a class="btn" href="T08-Montar-simulado.dc.html">Fazer um simulado</a>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const areas = [
+      { nome: 'Redes', pct: 40, qtd: '12 de 30 questões' },
+      { nome: 'Banco de Dados', pct: 48, qtd: '16 de 33 questões' },
+      { nome: 'Estruturas de Dados', pct: 65, qtd: '24 de 37 questões' },
+      { nome: 'Formação Geral', pct: 70, qtd: '28 de 40 questões' },
+      { nome: 'Algoritmos', pct: 72, qtd: '26 de 36 questões' },
+      { nome: 'Engenharia de Software', pct: 79, qtd: '30 de 38 questões' }
+    ];
+    return { areas: areas.map(function (a) { return Object.assign({}, a, { label: a.nome + ': ' + a.pct + '% de acerto' }); }) };
+  }
+}
+</script>
+</body>
+</html>

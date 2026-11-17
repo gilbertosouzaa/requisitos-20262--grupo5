@@ -1,0 +1,140 @@
+{% extends "base_app.html" %}
+
+{% set ativo = "inicio" %}
+
+{% block title %}Início — Apoio ENADE{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 36px; padding-bottom: 60px; display: flex; flex-direction: column; gap: 28px;">
+  <!-- Saudação e Curso -->
+  <div>
+    <h1 style="margin: 0; font-size: clamp(1.8rem, 3.5vw, 2.2rem);">Olá, {{ current_user.nome }}</h1>
+    <p class="text-muted" style="margin: 4px 0 0; font-size: 1.1rem;">
+      {% if current_user.curso %}
+        {{ current_user.curso.nome }}
+      {% else %}
+        Perfil de Administrador
+      {% endif %}
+    </p>
+  </div>
+
+  <!-- Faixa de Simulado em Andamento (Só aparece se houver simulado ativo) -->
+  {% if simulado_em_andamento %}
+    <section aria-label="Simulado em andamento" class="result-banner" style="background-color: var(--color-bg-subtle);">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="13" r="8"></circle>
+        <path d="M12 9v4l2.5 2.5M9 2h6"></path>
+      </svg>
+      <div style="flex: 1 1 300px;">
+        <strong style="font-size: 1.05rem;">Você tem um simulado em andamento</strong>
+        <div class="text-muted" style="font-size: 0.95rem; margin-top: 2px;">
+          {{ simulado_em_andamento.detalhes }}
+        </div>
+      </div>
+      <a class="btn btn-primary" href="{{ simulado_em_andamento.url }}">Continuar simulado</a>
+    </section>
+  {% endif %}
+
+  <!-- 3 Cards Principais -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+    <!-- Card 1: Fazer um simulado -->
+    <section class="card" style="display: flex; flex-direction: column; gap: 12px;">
+      <div class="card-icon" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+      </div>
+      <h2 style="margin: 0; font-size: 1.35rem;">Fazer um simulado</h2>
+      <p class="text-muted" style="margin: 0; flex: 1; line-height: 1.5;">
+        Prova completa (40 quest&otilde;es, 4h) ou parcial, escolhendo componente e &aacute;rea de conhecimento.
+      </p>
+      <a class="btn btn-primary" href="{{ url_for('main.novo_simulado') }}" style="align-self: flex-start; margin-top: 8px;">
+        Novo simulado
+      </a>
+    </section>
+
+    <!-- Card 2: Estudar questões -->
+    <section class="card" style="display: flex; flex-direction: column; gap: 12px;">
+      <div class="card-icon" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+      </div>
+      <h2 style="margin: 0; font-size: 1.35rem;">Estudar quest&otilde;es</h2>
+      <p class="text-muted" style="margin: 0; flex: 1; line-height: 1.5;">
+        Responda quest&otilde;es avulsas de provas anteriores e veja a corre&ccedil;&atilde;o comentada na hora.
+      </p>
+      <a class="btn btn-secondary" href="{{ url_for('main.questoes') }}" style="align-self: flex-start; margin-top: 8px;">
+        Abrir banco de quest&otilde;es
+      </a>
+    </section>
+
+    <!-- Card 3: Seu desempenho (RN08 e RN03) -->
+    <section class="card" style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+        <h2 style="margin: 0; font-size: 1.35rem;">Seu desempenho</h2>
+        <a href="{{ url_for('main.desempenho') }}" style="font-size: 0.875rem;">Ver tudo</a>
+      </div>
+
+      {% if tem_desempenho %}
+        <div class="metric-row">
+          <div>
+            <div class="metric-big">{{ desempenho.percentual_geral }}%</div>
+            <div class="text-muted" style="font-size: 0.8125rem;">acerto geral</div>
+          </div>
+          <div>
+            <div class="metric-big">{{ desempenho.total_respondidas }}</div>
+            <div class="text-muted" style="font-size: 0.8125rem;">quest&otilde;es respondidas</div>
+          </div>
+        </div>
+
+        {% if desempenho.revisar_primeiro %}
+          <div style="font-size: 0.875rem; font-weight: 700; margin-top: 4px;">Revisar primeiro</div>
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.875rem;">
+            {% for item in desempenho.revisar_primeiro %}
+              <div style="display: grid; grid-template-columns: 120px 1fr 44px; gap: 10px; align-items: center;">
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ item.area }}">
+                  {{ item.area }}
+                </span>
+                <div class="progress-bar-wrap" role="progressbar" aria-valuenow="{{ item.percentual }}" aria-valuemin="0" aria-valuemax="100">
+                  <div class="progress-bar-fill" style="width: {{ item.percentual }}%;"></div>
+                </div>
+                <strong style="text-align: right;">{{ item.percentual }}%</strong>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% else %}
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 12px 0;">
+          <p class="text-muted" style="margin: 0; line-height: 1.5;">
+            Responda algumas quest&otilde;es para ver seu desempenho
+          </p>
+          <a class="btn btn-secondary" href="{{ url_for('main.questoes') }}" style="align-self: flex-start;">
+            Come&ccedil;ar a estudar
+          </a>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+
+  <!-- Seção Último Simulado (quando houver) -->
+  {% if ultimo_simulado %}
+    <section style="display: flex; flex-direction: column; gap: 12px;">
+      <h2 style="margin: 0; font-size: 1.35rem;">Último simulado</h2>
+      <a href="{{ ultimo_simulado.url }}" style="display: flex; flex-wrap: wrap; gap: 24px; align-items: center; border: 1.5px solid var(--color-border); border-radius: 10px; padding: 16px 20px; text-decoration: none; color: inherit; background-color: #ffffff;">
+        <strong style="flex: 1 1 240px; font-size: 1.05rem;">{{ ultimo_simulado.titulo }}</strong>
+        <span class="text-muted" style="font-size: 0.9375rem;">{{ ultimo_simulado.data }}</span>
+        <span style="font-size: 0.9375rem;"><strong>{{ ultimo_simulado.percentual }}%</strong> de acerto</span>
+        <span style="font-size: 0.9375rem;" class="text-muted">{{ ultimo_simulado.tempo_gasto }}</span>
+        <span style="font-weight: 600; font-size: 0.9375rem;">Ver resultado &rsaquo;</span>
+      </a>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/inicio.js') }}"></script>
+{% endblock %}

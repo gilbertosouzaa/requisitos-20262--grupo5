@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>T09 Simulado em andamento</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.wf{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#1a1a1a;font-size:15px;line-height:1.5}
+.wf *{box-sizing:border-box}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 20px;border:2px solid #1a1a1a;border-radius:8px;background:#fff;color:#1a1a1a;font:inherit;font-weight:600;text-decoration:none;cursor:pointer}
+.btn-p{background:#1a1a1a;color:#fff}
+a.btn-p:hover{color:#fff}
+.ph{display:flex;align-items:center;justify-content:center;border:1.5px dashed #777;background:#f0f0f0;color:#555;font-size:13px;text-align:center}
+.muted{color:#555}
+.alt{display:flex;gap:14px;align-items:flex-start;min-height:52px;padding:12px 16px;border:1.5px solid #555;border-radius:10px;cursor:pointer}
+.alt input{width:20px;height:20px;margin:2px 0 0;flex:none}
+.alt b{flex:none;width:22px}
+.cell{display:flex;align-items:center;justify-content:center;height:40px;border-radius:6px;font-size:13px;font-weight:600;border:1.5px solid #555;background:#fff;color:#1a1a1a;font-family:inherit;cursor:pointer;padding:0}
+a{color:#1a1a1a}a:hover{color:#000}
+</style>
+</helmet>
+<div class="wf" style="min-height: 900px; background: #ffffff">
+  <header style="border-bottom: 2px solid #1a1a1a; background: #f5f5f5">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 10px 24px; min-height: 72px; display: flex; flex-wrap: wrap; align-items: center; gap: 20px">
+      <div style="flex: 1 1 260px">
+        <strong style="font-size: 17px">Simulado · Prova completa ENADE 2023</strong>
+        <div class="muted" style="font-size: 13px; display: flex; gap: 6px; align-items: center">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>
+          Respostas salvas automaticamente às 14:32
+        </div>
+      </div>
+      <div role="timer" aria-label="Tempo restante" style="display: flex; align-items: center; gap: 10px; border: 2.5px solid #1a1a1a; border-radius: 10px; padding: 6px 16px; background: #fff">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2.5M9 2h6"></path></svg>
+        <div><div class="muted" style="font-size: 11px; font-weight: 700; letter-spacing: .05em">TEMPO RESTANTE</div><div style="font-size: 26px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums">2:14:07</div></div>
+      </div>
+      <div style="display: flex; gap: 8px">
+        <a class="btn" href="T05-Inicio.dc.html" title="O tempo continua correndo">Sair</a>
+        <a class="btn btn-p" href="T10-Confirmar-entrega.dc.html">Entregar simulado</a>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width: 1200px; margin: 0 auto; padding: 28px 24px 40px; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start">
+    <article style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline">
+        <h1 style="margin: 0; font-size: 24px">Questão 19 <span class="muted" style="font-weight: 400; font-size: 18px">de 38</span></h1>
+        <span class="muted" style="font-size: 14px">Componente Específico · Objetiva</span>
+      </div>
+
+      <p style="margin: 0">Uma empresa possui uma rede local com 120 computadores e recebeu o bloco de endereços 192.168.10.0/24. A equipe precisa dividir a rede em quatro sub-redes do mesmo tamanho.</p>
+      <div class="ph" style="height: 130px; border-radius: 8px">[ figura: topologia da rede ]</div>
+      <p style="margin: 0">Qual máscara de sub-rede atende a essa necessidade?</p>
+
+      <fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
+        <legend style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Alternativas</legend>
+        <label class="alt"><input type="radio" name="alt"><b>A</b><span>255.255.255.0</span></label>
+        <label class="alt"><input type="radio" name="alt"><b>B</b><span>255.255.255.128</span></label>
+        <label class="alt" style="border: 2.5px solid #1a1a1a; background: #ececec"><input type="radio" name="alt" checked><b>C</b><span>255.255.255.192</span></label>
+        <label class="alt"><input type="radio" name="alt"><b>D</b><span>255.255.255.224</span></label>
+        <label class="alt"><input type="radio" name="alt"><b>E</b><span>255.255.255.240</span></label>
+      </fieldset>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center">
+        <button class="btn" type="button">‹ Anterior</button>
+        <button type="button" style="border: 0; background: none; font: inherit; text-decoration: underline; min-height: 44px; color: #1a1a1a; cursor: pointer">Limpar resposta</button>
+        <button class="btn btn-p" type="button">Próxima ›</button>
+      </div>
+    </article>
+
+    <aside aria-label="Mapa de questões" style="flex: 1 1 280px; max-width: 340px; border: 1.5px solid #1a1a1a; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline">
+        <h2 style="margin: 0; font-size: 16px">Mapa de questões</h2>
+        <span style="font-size: 14px"><strong>19</strong> de 38 respondidas</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px">
+        <sc-for list="{{ cells }}" as="c" hint-placeholder-count="38">
+          <button type="button" class="cell" style="{{ c.style }}" aria-label="{{ c.label }}">{{ c.n }}</button>
+        </sc-for>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px">
+        <span style="display: flex; gap: 8px; align-items: center"><span style="width: 16px; height: 16px; border-radius: 4px; background: #1a1a1a"></span>Respondida</span>
+        <span style="display: flex; gap: 8px; align-items: center"><span style="width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid #555"></span>Em branco</span>
+        <span style="display: flex; gap: 8px; align-items: center"><span style="width: 16px; height: 16px; border-radius: 4px; border: 3px solid #1a1a1a; background: #e6e6e6"></span>Questão atual</span>
+      </div>
+      <p class="muted" style="margin: 0; font-size: 13px">Questões 1–8: Formação Geral (objetivas) · 9–10: FG discursivas · 11–35: Específico (objetivas) · 36–38: Específico discursivas</p>
+    </aside>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const answered = [1,2,3,4,5,6,8,9,11,12,13,14,15,16,17,18,20,22];
+    const cells = [];
+    for (let n = 1; n <= 38; n++) {
+      const isCur = n === 19;
+      const isAns = answered.indexOf(n) >= 0;
+      let style = '';
+      let label = 'Questão ' + n + ', em branco';
+      if (isAns) { style = 'background: #1a1a1a; color: #ffffff; border-color: #1a1a1a'; label = 'Questão ' + n + ', respondida'; }
+      if (isCur) { style = 'border: 3px solid #1a1a1a; background: #e6e6e6'; label = 'Questão ' + n + ', atual'; }
+      cells.push({ n: n, style: style, label: label });
+    }
+    return { cells: cells };
+  }
+}
+</script>
+</body>
+</html>

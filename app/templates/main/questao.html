@@ -1,0 +1,314 @@
+{% extends "base_app.html" if current_user.is_authenticated else "base_publica.html" %}
+
+{% set ativo = "questoes" %}
+
+{% block title %}Questão {{ questao.numero }} · ENADE {{ questao.ano }} — Apoio ENADE{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 24px; padding-bottom: 60px; display: flex; flex-direction: column; gap: 16px;">
+  <!-- Trilha de navegação (Breadcrumb) -->
+  <nav aria-label="Trilha de navegação" class="breadcrumb-trail">
+    <a href="{{ url_for('main.questoes', **dict(request.args)) }}">Banco de quest&otilde;es</a>
+    <span>&rsaquo;</span>
+    <span>Quest&atilde;o {{ questao.numero }} &middot; ENADE {{ questao.ano }}</span>
+  </nav>
+
+  <div class="questao-layout">
+    <!-- Coluna Principal -->
+    <article class="questao-main" id="artigo-questao" data-questao-id="{{ questao.id }}" data-tipo="{{ questao.tipo }}" data-autenticado="{{ 'true' if current_user.is_authenticated else 'false' }}">
+      <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+        <h1 style="margin: 0; font-size: 1.75rem;">Quest&atilde;o {{ questao.numero }}</h1>
+        {% if questao.anulada %}
+          <span class="tag tag-anulada">Anulada pelo INEP</span>
+        {% endif %}
+      </div>
+
+      <!-- Container do Banner de Resultado (T07b) -->
+      <div id="container-faixa-resultado" {% if not modo_correcao %}style="display: none;"{% endif %}>
+        {% if modo_correcao and ultima_resposta %}
+          {% if questao.tipo == 'objetiva' %}
+            {% if ultima_resposta.correta %}
+              <div class="result-banner" role="status">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M20 6L9 17l-5-5"></path>
+                </svg>
+                <div>
+                  <strong style="font-size: 1.15rem;">Voc&ecirc; acertou!</strong>
+                  <div class="text-muted" style="font-size: 0.9rem;">Alternativa correta: <strong>{{ questao.gabarito_oficial }}</strong></div>
+                </div>
+              </div>
+            {% else %}
+              <div class="result-banner" role="status">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+                <div>
+                  <strong style="font-size: 1.15rem;">Voc&ecirc; errou.</strong>
+                  <span style="font-size: 0.95rem; margin-left: 6px;">
+                    Sua resposta: <strong>{{ ultima_resposta.alternativa_marcada or '—' }}</strong> &middot; Alternativa correta: <strong>{{ questao.gabarito_oficial }}</strong>
+                  </span>
+                </div>
+              </div>
+            {% endif %}
+          {% else %}
+            <!-- Discursiva enviada -->
+            <div class="result-banner" role="status">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              <div>
+                <strong style="font-size: 1.1rem;">Resposta enviada!</strong>
+                <div class="text-muted" style="font-size: 0.9rem;">Compare sua resposta com o padr&atilde;o oficial divulgado pelo INEP para fazer sua autoavalia&ccedil;&atilde;o.</div>
+              </div>
+            </div>
+          {% endif %}
+        {% endif %}
+      </div>
+
+      <!-- Enunciado: Em modo correção fica recolhido em <details>; antes de responder fica aberto -->
+      <div id="wrapper-enunciado">
+        {% if modo_correcao %}
+          <details class="details-box" id="details-enunciado">
+            <summary>Ver enunciado</summary>
+            <div style="margin-top: 14px; font-size: 1.05rem; line-height: 1.6;">
+              <p style="white-space: pre-line; margin-bottom: 12px;">{{ questao.enunciado }}</p>
+              {% if questao.imagem_arquivo %}
+                <div style="margin: 14px 0;">
+                  <img src="{{ url_for('admin.uploaded_file', filename=questao.imagem_arquivo) }}" alt="{{ questao.imagem_descricao or 'Imagem da questão' }}" style="max-width: 100%; height: auto; border: 1px solid var(--color-border); border-radius: 8px;">
+                </div>
+              {% elif questao.imagem_placeholder %}
+                <div class="placeholder-box" style="min-height: 140px; margin: 12px 0;">
+                  [ {{ questao.imagem_placeholder }} ]
+                </div>
+              {% endif %}
+            </div>
+          </details>
+        {% else %}
+          <div id="enunciado-direto" style="font-size: 1.05rem; line-height: 1.6;">
+            <p style="white-space: pre-line; margin-bottom: 12px;">{{ questao.enunciado }}</p>
+            {% if questao.imagem_arquivo %}
+              <div style="margin: 14px 0;">
+                <img src="{{ url_for('admin.uploaded_file', filename=questao.imagem_arquivo) }}" alt="{{ questao.imagem_descricao or 'Imagem da questão' }}" style="max-width: 100%; height: auto; border: 1px solid var(--color-border); border-radius: 8px;">
+              </div>
+            {% elif questao.imagem_placeholder %}
+              <div class="placeholder-box" style="min-height: 140px; margin: 12px 0;">
+                [ {{ questao.imagem_placeholder }} ]
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Formulário de Resolução (Modo Estudo) -->
+      <form id="form-responder" method="POST" action="{{ url_for('main.responder_questao_form', id=questao.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <!-- Questão Objetiva -->
+        {% if questao.tipo == 'objetiva' %}
+          <fieldset class="alternativas-list" id="lista-alternativas" style="border: 0; margin: 0; padding: 0;">
+            <legend style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Alternativas</legend>
+
+            {% for alt in questao.alternativas %}
+              {% set marcada = (ultima_resposta and ultima_resposta.alternativa_marcada == alt.letra) %}
+              {% set eh_correta = (alt.letra == questao.gabarito_oficial) %}
+
+              <label class="alt-choice {% if modo_correcao %}disabled {% if eh_correta %}correct-alt{% elif marcada and not eh_correta %}user-wrong-alt{% else %}other-alt{% endif %}{% elif marcada %}selected{% endif %}"
+                     id="alt-label-{{ alt.letra }}">
+                <input type="radio" name="alternativa" value="{{ alt.letra }}"
+                       {% if marcada %}checked{% endif %}
+                       {% if modo_correcao %}disabled{% endif %}>
+                <span class="alt-letter">{{ alt.letra }}</span>
+                <span class="alt-text">{{ alt.texto }}</span>
+
+                <!-- Marcadores de correção (T07b) -->
+                {% if modo_correcao %}
+                  {% if eh_correta %}
+                    <span class="alt-marker" style="color: #116327;">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>
+                      Correta
+                    </span>
+                  {% elif marcada and not eh_correta %}
+                    <span class="alt-marker" style="color: #900000;">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                      Sua resposta
+                    </span>
+                  {% endif %}
+                {% endif %}
+              </label>
+            {% endfor %}
+          </fieldset>
+
+          <!-- Ações antes de responder (T07a) -->
+          <div id="acoes-responder" style="{% if modo_correcao %}display: none;{% endif %} margin-top: 18px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center;">
+            {% if current_user.is_authenticated %}
+              <button type="submit" class="btn btn-primary" id="btn-confirmar" disabled>
+                Confirmar resposta
+              </button>
+            {% else %}
+              <!-- Visitante: ao clicar, leva para login e volta (RN01) -->
+              <a class="btn btn-primary" id="btn-visitante-entrar" href="{{ url_for('auth.login', next=request.full_path if request.query_string else request.path) }}">
+                Confirmar resposta
+              </a>
+            {% endif %}
+            <span class="text-muted" id="dica-confirmar" style="font-size: 0.875rem;">
+              {% if current_user.is_authenticated %}
+                Selecione uma alternativa para habilitar a confirma&ccedil;&atilde;o.
+              {% else %}
+                Voc&ecirc; precisa entrar na sua conta para responder quest&otilde;es.
+              {% endif %}
+            </span>
+          </div>
+
+        {% else %}
+          <!-- Questão Discursiva (RF07) -->
+          <div id="campo-discursiva" style="display: flex; flex-direction: column; gap: 10px;">
+            <label class="form-label" for="texto_resposta" style="font-size: 1rem;">Sua resposta</label>
+            <textarea class="form-control" id="texto_resposta" name="texto_resposta" rows="7" placeholder="Escreva aqui a sua resposta para a quest&atilde;o discursiva…" {% if modo_correcao %}disabled{% endif %}>{{ (ultima_resposta.texto_resposta if ultima_resposta else '') }}</textarea>
+
+            <div id="acoes-responder-disc" style="{% if modo_correcao %}display: none;{% endif %} margin-top: 10px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center;">
+              {% if current_user.is_authenticated %}
+                <button type="submit" class="btn btn-primary" id="btn-confirmar-disc">
+                  Enviar resposta
+                </button>
+              {% else %}
+                <a class="btn btn-primary" href="{{ url_for('auth.login', next=request.full_path if request.query_string else request.path) }}">
+                  Enviar resposta
+                </a>
+                <span class="text-muted" style="font-size: 0.875rem;">
+                  Voc&ecirc; precisa entrar na sua conta para responder quest&otilde;es.
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+      </form>
+
+      <!-- Bloco de Correção e Gabarito Comentado (T07b) -->
+      <div id="bloco-gabarito-comentado" style="{% if not modo_correcao %}display: none;{% endif %} display: flex; flex-direction: column; gap: 20px;">
+        <!-- Se for Discursiva: Exibe padrão de resposta -->
+        {% if questao.tipo == 'discursiva' and modo_correcao %}
+          <section class="gabarito-card" style="background-color: #fafafa;">
+            <h2 style="font-size: 1.25rem; margin: 0;">Padr&atilde;o de resposta esperado (INEP)</h2>
+            <div style="font-size: 0.95rem; line-height: 1.6; white-space: pre-line;">{{ questao.padrao_resposta }}</div>
+          </section>
+        {% endif %}
+
+        <!-- Gabarito Comentado para Objetiva -->
+        {% if questao.tipo == 'objetiva' and modo_correcao %}
+          <section class="gabarito-card" id="card-comentarios">
+            <h2 style="font-size: 1.25rem; margin: 0;">Gabarito comentado</h2>
+
+            {% if questao.comentario_status == 'publicado' and questao.comentario_correta %}
+              <div id="comentario-correta-conteudo">
+                <p style="margin: 0; line-height: 1.5;">
+                  <strong>Por que a {{ questao.gabarito_oficial }} está correta:</strong> {{ questao.comentario_correta }}
+                </p>
+              </div>
+
+              <div id="comentarios-erro-conteudo" style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
+                {% set erros_visiveis = [] %}
+                {% for alt in questao.alternativas %}
+                  {% if alt.letra != questao.gabarito_oficial and alt.comentario_erro and alt.comentario_erro.strip() %}
+                    <span style="font-size: 0.95rem; line-height: 1.45;">
+                      <strong>{{ alt.letra }}</strong> &mdash; {{ alt.comentario_erro }}
+                    </span>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            {% else %}
+              <!-- Estado "Comentário em elaboração" (US06) -->
+              <div id="comentario-elaboracao" class="alert-box" style="margin: 0;">
+                <svg class="alert-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <div>
+                  Comentário em elaboração. Enquanto isso, veja a <a href="{{ url_for('main.discussao_questao', id=questao.id) }}">discussão desta questão</a>.
+                </div>
+              </div>
+            {% endif %}
+          </section>
+        {% endif %}
+
+        <!-- Ações pós-correção -->
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 4px;">
+          {% if proxima_id %}
+            <a class="btn btn-primary" id="btn-proxima" href="{{ url_for('main.detalhe_questao', id=proxima_id, **dict(request.args)) }}">
+              Pr&oacute;xima quest&atilde;o &rsaquo;
+            </a>
+          {% endif %}
+          <a class="btn btn-secondary" id="btn-voltar-banco" href="{{ url_for('main.questoes', **dict(request.args)) }}">
+            Voltar ao banco
+          </a>
+        </div>
+      </div>
+    </article>
+
+    <!-- Coluna Lateral -->
+    <aside class="questao-aside" aria-label="Informações e navegação da questão">
+      <!-- Cartão Sobre a Questão -->
+      <section class="info-box">
+        <h2 style="font-size: 1.05rem; margin: 0 0 10px;">Sobre a quest&atilde;o</h2>
+        <div class="kv-row"><span class="text-muted">Edi&ccedil;&atilde;o</span><strong>ENADE {{ questao.ano }}</strong></div>
+        <div class="kv-row"><span class="text-muted">Curso</span><strong>{{ questao.curso.nome }}</strong></div>
+        <div class="kv-row">
+          <span class="text-muted">Componente</span>
+          <strong>{% if questao.componente == 'formacao_geral' %}Forma&ccedil;&atilde;o Geral{% else %}Espec&iacute;fico{% endif %}</strong>
+        </div>
+        <div class="kv-row"><span class="text-muted">&Aacute;rea</span><strong>{{ questao.area }}</strong></div>
+        <div class="kv-row">
+          <span class="text-muted">Tipo</span>
+          <strong>{% if questao.tipo == 'objetiva' %}Objetiva{% else %}Discursiva{% endif %}</strong>
+        </div>
+      </section>
+
+      <!-- Cartão de Navegação Anterior / Próxima -->
+      <section class="info-box" style="display: flex; flex-direction: column; gap: 12px;">
+        <span class="text-muted" style="font-size: 0.875rem;">
+          {% if posicao and total_no_filtro %}
+            Quest&atilde;o {{ posicao }} de {{ total_no_filtro }} no filtro atual
+          {% else %}
+            Navega&ccedil;&atilde;o
+          {% endif %}
+        </span>
+        <div style="display: flex; gap: 10px;">
+          {% if anterior_id %}
+            <a class="btn btn-secondary" style="flex: 1; min-height: 40px; padding: 0 10px;" href="{{ url_for('main.detalhe_questao', id=anterior_id, **dict(request.args)) }}">
+              &lsaquo; Anterior
+            </a>
+          {% else %}
+            <button class="btn btn-secondary" style="flex: 1; min-height: 40px; padding: 0 10px;" disabled>&lsaquo; Anterior</button>
+          {% endif %}
+
+          {% if proxima_id %}
+            <a class="btn btn-secondary" style="flex: 1; min-height: 40px; padding: 0 10px;" href="{{ url_for('main.detalhe_questao', id=proxima_id, **dict(request.args)) }}">
+              Pr&oacute;xima &rsaquo;
+            </a>
+          {% else %}
+            <button class="btn btn-secondary" style="flex: 1; min-height: 40px; padding: 0 10px;" disabled>Pr&oacute;xima &rsaquo;</button>
+          {% endif %}
+        </div>
+      </section>
+
+      <!-- Cartão de Discussão (Fórum) -->
+      <section class="info-box" style="display: flex; flex-direction: column; gap: 10px;">
+        <h2 style="font-size: 1.05rem; margin: 0;">Discuss&atilde;o</h2>
+        <p class="text-muted" style="margin: 0; font-size: 0.875rem; line-height: 1.45;">
+          Tire d&uacute;vidas e compartilhe resolu&ccedil;&otilde;es com outros estudantes.
+        </p>
+        <a class="btn btn-secondary" href="{{ url_for('main.discussao_questao', id=questao.id) }}" style="align-self: flex-start; min-height: 38px; font-size: 0.875rem;">
+          Ver discuss&atilde;o
+        </a>
+      </section>
+    </aside>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/questao.js') }}"></script>
+{% endblock %}

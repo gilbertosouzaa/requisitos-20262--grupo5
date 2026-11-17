@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block header %}
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="{{ url_for('main.landing') }}" class="brand-link" aria-label="Apoio ENADE - Página inicial">
+      <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="" width="44" height="32">
+      <strong>Apoio ENADE</strong>
+    </a>
+
+    <nav class="site-nav" aria-label="Navegação principal">
+      <a class="nav-link {% if ativo == 'questoes' %}active{% endif %}" href="{{ url_for('main.questoes') }}">Banco de questões</a>
+      <a class="nav-link" href="{{ url_for('main.landing') }}#como-funciona">Como funciona</a>
+    </nav>
+
+    <div class="header-actions">
+      <a class="btn btn-secondary" href="{{ url_for('auth.login') }}">Entrar</a>
+      <a class="btn btn-primary" href="{{ url_for('auth.cadastro') }}">Criar conta</a>
+    </div>
+  </div>
+</header>
+{% endblock %}

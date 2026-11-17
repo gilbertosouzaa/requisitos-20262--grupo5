@@ -1,0 +1,50 @@
+{% extends "base_app.html" if current_user.is_authenticated else "base_publica.html" %}
+
+{% set ativo = "questoes" %}
+
+{% block title %}{{ titulo }} — Apoio ENADE{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 48px; padding-bottom: 64px;">
+  <!-- Trilha de navegação -->
+  {% if questao %}
+    <nav aria-label="Trilha de navegação" class="breadcrumb-trail" style="margin-bottom: 24px;">
+      <a href="{{ url_for('main.questoes') }}">Banco de quest&otilde;es</a>
+      <span>&rsaquo;</span>
+      <a href="{{ url_for('main.detalhe_questao', id=questao.id) }}">Quest&atilde;o {{ questao.numero }} &middot; ENADE {{ questao.ano }}</a>
+      <span>&rsaquo;</span>
+      <span>Discuss&atilde;o</span>
+    </nav>
+  {% endif %}
+
+  <div style="max-width: 680px; margin: 0 auto; text-align: center;">
+    <div style="display: flex; justify-content: center; margin-bottom: 20px;">
+      <div class="card-icon" style="width: 64px; height: 64px; border-radius: 50%;" aria-hidden="true">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+      </div>
+    </div>
+
+    <span class="status-pill">F&oacute;rum por Quest&atilde;o (RF17)</span>
+    <h1 style="font-size: 2.2rem; margin-bottom: 12px;">{{ titulo }}</h1>
+    <h2 style="font-size: 1.25rem; font-weight: normal; color: var(--color-text-muted); margin-bottom: 24px;">
+      Em constru&ccedil;&atilde;o
+    </h2>
+    <p class="text-muted" style="font-size: 1.05rem; line-height: 1.6; margin-bottom: 32px;">
+      {{ subtitulo }}
+    </p>
+
+    <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+      {% if questao %}
+        <a class="btn btn-primary" href="{{ url_for('main.detalhe_questao', id=questao.id) }}">
+          Voltar para a quest&atilde;o
+        </a>
+      {% endif %}
+      <a class="btn btn-secondary" href="{{ url_for('main.questoes') }}">
+        Ir para o banco de quest&otilde;es
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Acesso negado (403) — Apoio ENADE{% endblock %}
+
+{% block content %}
+<main class="container" style="padding-top: 60px; padding-bottom: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 18px;">
+  <div style="font-size: 3.5rem; font-weight: 800; line-height: 1; color: var(--color-text);">403</div>
+  <h1 style="font-size: 1.75rem; margin: 0;">Você não tem permissão para acessar esta página</h1>
+  <p class="text-muted" style="max-width: 500px; font-size: 1.05rem; line-height: 1.5; margin: 0;">
+    Esta área é restrita a administradores do sistema. Se você acredita que isto é um erro, contate o administrador.
+  </p>
+  <div style="margin-top: 10px;">
+    <a class="btn btn-primary" href="{{ url_for('main.inicio') }}">
+      Voltar para o Início
+    </a>
+  </div>
+</main>
+{% endblock %}

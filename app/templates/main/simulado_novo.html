@@ -1,0 +1,140 @@
+{% extends "base_app.html" %}
+
+{% set ativo = "simulados" %}
+
+{% block title %}Novo simulado — Apoio ENADE{% endblock %}
+
+{% block content %}
+<main class="container" style="padding-top: 32px; padding-bottom: 48px; display: flex; flex-direction: column; gap: 24px;">
+  <!-- Cabeçalho da página -->
+  <div>
+    <h1 style="margin: 0; font-size: clamp(1.8rem, 3.5vw, 2.2rem);">Novo simulado</h1>
+    <p class="text-muted" style="margin: 4px 0 0; font-size: 1.05rem;">
+      Escolha o tipo de simulado. O gabarito s&oacute; aparece depois da entrega.
+    </p>
+  </div>
+
+  <!-- Exibição de mensagens flash de validação -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        {% for category, message in messages %}
+          <div class="alert {% if category == 'danger' %}alert-danger{% else %}alert-info{% endif %}" role="alert">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <form id="form-novo-simulado" action="{{ url_for('main.novo_simulado') }}" method="POST" style="display: flex; flex-direction: column; gap: 24px;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- Cartões de Opção (Radio Group) -->
+    <div role="radiogroup" aria-label="Tipo de simulado" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; align-items: start;">
+      
+      <!-- Cartão 1: Prova Completa -->
+      <section id="card-completo" class="simulado-option-card selected">
+        <label for="tipo-completo" style="display: flex; gap: 12px; align-items: center; cursor: pointer;">
+          <input type="radio" id="tipo-completo" name="tipo" value="completo" checked style="width: 22px; height: 22px; margin: 0; cursor: pointer;">
+          <span style="font-size: 1.35rem; font-weight: 700;">Prova completa</span>
+        </label>
+        <p class="text-muted" style="margin: 0; font-size: 0.95rem; line-height: 1.45;">
+          Igual &agrave; prova real: Forma&ccedil;&atilde;o Geral + Componente Espec&iacute;fico, objetivas e discursivas.
+        </p>
+        <div style="display: flex; gap: 28px; margin: 4px 0;">
+          <div>
+            <div id="display-qtd-completo" style="font-size: 2rem; font-weight: 800; line-height: 1;">
+              {% if edicoes and edicoes[0].validas %}{{ edicoes[0].validas }}{% else %}40{% endif %}
+            </div>
+            <div class="text-muted" style="font-size: 0.8125rem;">quest&otilde;es</div>
+          </div>
+          <div>
+            <div style="font-size: 2rem; font-weight: 800; line-height: 1;">4h00</div>
+            <div class="text-muted" style="font-size: 0.8125rem;">de prova</div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label class="form-label" for="edicao">Edi&ccedil;&atilde;o</label>
+          <select class="form-input" id="edicao" name="edicao">
+            {% for ed in edicoes %}
+              <option value="{{ ed.ano }}" data-anuladas="{{ ed.anuladas }}" data-validas="{{ ed.validas }}">
+                {{ ed.label }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Aviso de questões anuladas (RN03) -->
+        <div id="aviso-anuladas" style="display: flex; gap: 10px; align-items: flex-start; border: 1.5px dashed var(--color-border-subtle); border-radius: 8px; padding: 12px; font-size: 0.875rem; background: #ffffff;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="flex: none; margin-top: 1px;">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 11v5M12 7.5v.5"></path>
+          </svg>
+          <span id="texto-aviso-anuladas">
+            {% if edicoes and edicoes[0].anuladas > 0 %}
+              Esta edição tem <strong>{{ edicoes[0].anuladas }} questões anuladas</strong> pelo INEP, que não fazem parte do simulado. O tempo continua 4h00.
+            {% else %}
+              Esta edição não possui questões anuladas. O tempo de prova é de 4h00.
+            {% endif %}
+          </span>
+        </div>
+      </section>
+
+      <!-- Cartão 2: Simulado Parcial -->
+      <section id="card-parcial" class="simulado-option-card">
+        <label for="tipo-parcial" style="display: flex; gap: 12px; align-items: center; cursor: pointer;">
+          <input type="radio" id="tipo-parcial" name="tipo" value="parcial" style="width: 22px; height: 22px; margin: 0; cursor: pointer;">
+          <span style="font-size: 1.35rem; font-weight: 700;">Simulado parcial</span>
+        </label>
+        <p class="text-muted" style="margin: 0; font-size: 0.95rem; line-height: 1.45;">
+          Escolha o conte&uacute;do e a quantidade. Tempo de 6 minutos por quest&atilde;o.
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <label class="form-label" for="comp">Componente</label>
+            <select class="form-input" id="comp" name="componente">
+              <option value="especifico">Espec&iacute;fico</option>
+              <option value="formacao_geral">Forma&ccedil;&atilde;o Geral</option>
+              <option value="ambos">Ambos</option>
+            </select>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <label class="form-label" for="area">&Aacute;rea</label>
+            <select class="form-input" id="area" name="area">
+              <option value="todas">Todas</option>
+              {% for ar in areas %}
+                <option value="{{ ar }}">{{ ar }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label class="form-label" for="qtd">Quantidade de quest&otilde;es</label>
+          <div style="display: flex; gap: 14px; align-items: center;">
+            <input class="form-input" id="qtd" name="quantidade" type="number" value="10" min="5" max="40" style="width: 110px;">
+            <span style="font-size: 1rem;">&rarr; tempo: <strong id="tempo-calculado">1h00</strong></span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Linha de resumo e ações -->
+    <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; border-top: 1.5px solid var(--color-border-subtle); padding-top: 24px; margin-top: 8px;">
+      <span style="flex: 1 1 300px; font-size: 1.05rem;">
+        Resumo: <strong id="resumo-simulado">Prova completa &middot; ENADE 2023 &middot; 38 quest&otilde;es &middot; 4h00</strong>
+      </span>
+      <a class="btn btn-secondary" href="{{ url_for('main.inicio') }}">Cancelar</a>
+      <button type="submit" class="btn btn-primary" id="btn-iniciar">Iniciar simulado</button>
+    </div>
+  </form>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/simulado_novo.js') }}"></script>
+{% endblock %}

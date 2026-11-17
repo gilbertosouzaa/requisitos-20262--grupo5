@@ -1,0 +1,399 @@
+{% extends "base_admin.html" %}
+
+{% block title %}
+  {% if modo == 'nova' %}Nova questão{% else %}Editar questão {{ questao.numero }}{% endif %} — Administração Apoio ENADE
+{% endblock %}
+
+{% block content %}
+<main class="container" style="padding-top: 24px; padding-bottom: 64px;">
+  
+  <!-- Trilha de Navegação (Breadcrumb) -->
+  <nav class="breadcrumb-nav" aria-label="Trilha de navegação" style="margin-bottom: 20px;">
+    <a href="{{ url_for('admin.questoes') }}">Questões</a>
+    <span aria-hidden="true">&rsaquo;</span>
+    <span aria-current="page">
+      {% if modo == 'nova' %}Nova questão{% else %}Editar questão {{ questao.numero }}{% endif %}
+    </span>
+  </nav>
+
+  <!-- Cabeçalho do Formulário -->
+  <header style="margin-bottom: 24px;">
+    <h1 style="font-size: 1.75rem; margin: 0 0 6px;">
+      {% if modo == 'nova' %}Cadastrar nova questão{% else %}Editar questão {{ questao.numero }}{% endif %}
+    </h1>
+    <p class="text-muted" style="margin: 0; font-size: 0.95rem;">
+      Preencha os dados da questão do ENADE conforme o edital oficial e os requisitos de RN02.
+    </p>
+  </header>
+
+  <!-- Resumo de Erros no Topo com Links Âncora (WCAG AA) -->
+  {% if erros %}
+    <div class="error-summary" role="alert" tabindex="-1" id="resumo-erros">
+      <h2>Corrija os erros abaixo para salvar a questão:</h2>
+      <ul>
+        {% for erro in erros %}
+          <li>
+            <a href="#campo-{{ erro.campo }}">{{ erro.mensagem }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <!-- Layout com Formulário Principal e Checklist Lateral -->
+  <div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 32px; align-items: start;">
+    
+    <!-- Formulário Principal -->
+    <form method="POST"
+          action="{% if modo == 'nova' %}{{ url_for('admin.nova_questao') }}{% else %}{{ url_for('admin.editar_questao', id=questao.id) }}{% endif %}"
+          enctype="multipart/form-data"
+          id="form-questao"
+          style="display: flex; flex-direction: column; gap: 28px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <!-- Seção 1: Classificação -->
+      <fieldset class="card" style="padding: 24px; border: 1.5px solid var(--color-border); border-radius: 10px; background: #ffffff;">
+        <legend style="font-size: 1.15rem; font-weight: 700; padding: 0 8px; margin-bottom: 16px;">
+          1. Classificação
+        </legend>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+          
+          <!-- Curso -->
+          <div class="form-group" style="margin: 0;">
+            <label for="campo-curso_id" style="font-weight: 600; font-size: 0.875rem;">
+              Curso <span style="color: var(--color-danger-text);">*</span>
+            </label>
+            <select id="campo-curso_id" name="curso_id" class="form-control" required>
+              <option value="">Selecione o curso...</option>
+              {% for c in cursos %}
+                <option value="{{ c.id }}" {% if dados.get('curso_id')|string == c.id|string %}selected{% endif %}>
+                  {{ c.nome }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Ano -->
+          <div class="form-group" style="margin: 0;">
+            <label for="campo-ano" style="font-weight: 600; font-size: 0.875rem;">
+              Ano do ENADE <span style="color: var(--color-danger-text);">*</span>
+            </label>
+            <input type="number"
+                   id="campo-ano"
+                   name="ano"
+                   class="form-control"
+                   min="1990"
+                   max="2100"
+                   placeholder="ex: 2023"
+                   value="{{ dados.get('ano', '') }}"
+                   required>
+          </div>
+
+          <!-- Número -->
+          <div class="form-group" style="margin: 0;">
+            <label for="campo-numero" style="font-weight: 600; font-size: 0.875rem;">
+              Número da questão <span style="color: var(--color-danger-text);">*</span>
+            </label>
+            <input type="number"
+                   id="campo-numero"
+                   name="numero"
+                   class="form-control"
+                   min="1"
+                   max="100"
+                   placeholder="ex: 1"
+                   value="{{ dados.get('numero', '') }}"
+                   required>
+          </div>
+
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 16px;">
+          
+          <!-- Componente -->
+          <div class="form-group" style="margin: 0;">
+            <label style="font-weight: 600; font-size: 0.875rem; display: block; margin-bottom: 8px;">
+              Componente <span style="color: var(--color-danger-text);">*</span>
+            </label>
+            <div style="display: flex; gap: 16px; align-items: center; min-height: 42px;">
+              <label style="display: inline-flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
+                <input type="radio"
+                       name="componente"
+                       id="campo-componente-fg"
+                       value="formacao_geral"
+                       {% if dados.get('componente') == 'formacao_geral' %}checked{% endif %}
+                       required>
+                Formação Geral
+              </label>
+              <label style="display: inline-flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
+                <input type="radio"
+                       name="componente"
+                       id="campo-componente-esp"
+                       value="especifico"
+                       {% if dados.get('componente', 'especifico') == 'especifico' %}checked{% endif %}
+                       required>
+                Componente Específico
+              </label>
+            </div>
+          </div>
+
+          <!-- Área de Conhecimento -->
+          <div class="form-group" style="margin: 0;">
+            <label for="campo-area" style="font-weight: 600; font-size: 0.875rem;">
+              Área de conhecimento <span style="color: var(--color-danger-text);">*</span>
+            </label>
+            <input type="text"
+                   id="campo-area"
+                   name="area"
+                   list="lista-areas-sugestoes"
+                   class="form-control"
+                   placeholder="Selecione ou digite a área..."
+                   value="{{ dados.get('area', '') }}"
+                   required>
+            <datalist id="lista-areas-sugestoes">
+              <!-- Preenchido dinamicamente via JS conforme o componente -->
+            </datalist>
+          </div>
+
+        </div>
+      </fieldset>
+
+      <!-- Seção 2: Enunciado e Imagem -->
+      <fieldset class="card" style="padding: 24px; border: 1.5px solid var(--color-border); border-radius: 10px; background: #ffffff;">
+        <legend style="font-size: 1.15rem; font-weight: 700; padding: 0 8px; margin-bottom: 16px;">
+          2. Enunciado e Mídia
+        </legend>
+
+        <!-- Texto do Enunciado -->
+        <div class="form-group" style="margin: 0 0 20px;">
+          <label for="campo-enunciado" style="font-weight: 600; font-size: 0.875rem;">
+            Texto do enunciado <span style="color: var(--color-danger-text);">*</span>
+          </label>
+          <textarea id="campo-enunciado"
+                    name="enunciado"
+                    rows="6"
+                    class="form-control"
+                    placeholder="Digite o enunciado completo da questão..."
+                    style="line-height: 1.5; font-family: inherit;"
+                    required>{{ dados.get('enunciado', '') }}</textarea>
+        </div>
+
+        <!-- Upload de Imagem e Acessibilidade -->
+        <div style="border-top: 1px dashed var(--color-border); padding-top: 16px;">
+          <div style="font-weight: 600; font-size: 0.9375rem; margin-bottom: 6px;">
+            Imagem da questão (opcional)
+          </div>
+          <p class="text-muted" style="margin: 0 0 12px; font-size: 0.8125rem;">
+            Formatos aceitos: PNG ou JPG. Tamanho máximo: 2MB.
+          </p>
+
+          <!-- Se já existe imagem cadastrada -->
+          {% if questao and questao.imagem_arquivo %}
+            <div style="margin-bottom: 14px; padding: 12px; border: 1px solid var(--color-border); border-radius: 8px; background: #fafafa; display: flex; align-items: center; gap: 16px;">
+              <img src="{{ url_for('admin.uploaded_file', filename=questao.imagem_arquivo) }}"
+                   alt="{{ questao.imagem_descricao or 'Imagem atual' }}"
+                   style="max-width: 120px; max-height: 80px; object-fit: contain; border: 1px solid var(--color-border); border-radius: 4px; background: #ffffff;">
+              <div style="flex: 1;">
+                <div style="font-size: 0.875rem; font-weight: 600;">Imagem anexada atualmente</div>
+                <div style="font-size: 0.8125rem; color: var(--color-text-muted);">{{ questao.imagem_descricao or 'Sem descrição' }}</div>
+                <label style="display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.875rem; color: #c5221f; cursor: pointer;">
+                  <input type="checkbox" name="remover_imagem" value="1">
+                  Remover esta imagem
+                </label>
+              </div>
+            </div>
+          {% endif %}
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; align-items: start;">
+            <div class="form-group" style="margin: 0;">
+              <label for="campo-imagem" style="font-weight: 600; font-size: 0.875rem;">
+                {% if questao and questao.imagem_arquivo %}Substituir imagem{% else %}Selecionar arquivo{% endif %}
+              </label>
+              <input type="file"
+                     id="campo-imagem"
+                     name="imagem"
+                     accept="image/png, image/jpeg"
+                     class="form-control"
+                     style="padding: 6px 10px;">
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+              <label for="campo-imagem_descricao" style="font-weight: 600; font-size: 0.875rem;">
+                Descrição da imagem (acessibilidade / alt)
+              </label>
+              <input type="text"
+                     id="campo-imagem_descricao"
+                     name="imagem_descricao"
+                     class="form-control"
+                     placeholder="Texto alternativo descrevendo a figura..."
+                     value="{{ dados.get('imagem_descricao', '') }}">
+            </div>
+          </div>
+
+          <!-- Preview da imagem antes do envio -->
+          <div id="imagem-preview-container" style="display: none; margin-top: 14px; padding: 12px; border: 1px dashed var(--color-border); border-radius: 8px;">
+            <div style="font-size: 0.8125rem; font-weight: 600; margin-bottom: 6px;">Pré-visualização do arquivo selecionado:</div>
+            <img id="imagem-preview-elemento" src="" alt="Prévia" style="max-width: 100%; max-height: 200px; border-radius: 4px;">
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- Seção 3: Tipo da Questão e Respostas -->
+      <fieldset class="card" style="padding: 24px; border: 1.5px solid var(--color-border); border-radius: 10px; background: #ffffff;">
+        <legend style="font-size: 1.15rem; font-weight: 700; padding: 0 8px; margin-bottom: 16px;">
+          3. Tipo e Respostas
+        </legend>
+
+        <!-- Seleção de Tipo -->
+        <div class="form-group" style="margin: 0 0 20px;">
+          <label style="font-weight: 600; font-size: 0.875rem; display: block; margin-bottom: 8px;">
+            Tipo da questão <span style="color: var(--color-danger-text);">*</span>
+          </label>
+          <div style="display: flex; gap: 24px; align-items: center;">
+            <label style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer;">
+              <input type="radio"
+                     name="tipo"
+                     id="campo-tipo-objetiva"
+                     value="objetiva"
+                     {% if dados.get('tipo', 'objetiva') == 'objetiva' %}checked{% endif %}
+                     required>
+              Objetiva (múltipla escolha A–E)
+            </label>
+            <label style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer;">
+              <input type="radio"
+                     name="tipo"
+                     id="campo-tipo-discursiva"
+                     value="discursiva"
+                     {% if dados.get('tipo') == 'discursiva' %}checked{% endif %}
+                     required>
+              Discursiva (padrão de resposta)
+            </label>
+          </div>
+        </div>
+
+        <!-- Bloco Específico para Questões Objetivas -->
+        <div id="secao-objetiva" style="{% if dados.get('tipo') == 'discursiva' %}display: none;{% endif %} display: flex; flex-direction: column; gap: 16px;">
+          <div style="font-size: 0.9375rem; font-weight: 600; border-bottom: 1px solid var(--color-border-subtle); padding-bottom: 8px;">
+            Alternativas e Gabarito Oficial
+          </div>
+
+          <p class="text-muted" style="margin: 0; font-size: 0.8125rem;">
+            Preencha as 5 alternativas e selecione a letra correspondente ao gabarito oficial do INEP.
+          </p>
+
+          {% for letra in ['A', 'B', 'C', 'D', 'E'] %}
+            <div style="display: flex; gap: 12px; align-items: flex-start; padding: 10px; border: 1px solid var(--color-border-subtle); border-radius: 8px; background: #fafafa;">
+              <!-- Rádio do Gabarito -->
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 4px;">
+                <input type="radio"
+                       name="gabarito_oficial"
+                       id="gabarito-{{ letra }}"
+                       value="{{ letra }}"
+                       {% if dados.get('gabarito_oficial') == letra %}checked{% endif %}
+                       aria-label="Marcar {{ letra }} como gabarito oficial">
+                <label for="gabarito-{{ letra }}" style="font-weight: 700; font-size: 0.875rem; cursor: pointer;">
+                  {{ letra }}
+                </label>
+              </div>
+
+              <!-- Textarea da Alternativa -->
+              <div style="flex: 1;">
+                <label for="campo-alt_{{ letra }}" class="sr-only">Texto da alternativa {{ letra }}</label>
+                <textarea id="campo-alt_{{ letra }}"
+                          name="alt_{{ letra }}"
+                          rows="2"
+                          class="form-control campo-alternativa"
+                          placeholder="Texto da alternativa {{ letra }}..."
+                          style="font-family: inherit; font-size: 0.9375rem;">{{ dados.get('alt_' ~ letra, '') }}</textarea>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Bloco Específico para Questões Discursivas -->
+        <div id="secao-discursiva" style="{% if dados.get('tipo', 'objetiva') != 'discursiva' %}display: none;{% endif %} display: flex; flex-direction: column; gap: 12px;">
+          <label for="campo-padrao_resposta" style="font-weight: 600; font-size: 0.875rem;">
+            Padrão de resposta esperado pelo INEP <span style="color: var(--color-danger-text);">*</span>
+          </label>
+          <textarea id="campo-padrao_resposta"
+                    name="padrao_resposta"
+                    rows="6"
+                    class="form-control"
+                    placeholder="Descreva a expectativa de resposta e critérios de pontuação do INEP..."
+                    style="line-height: 1.5; font-family: inherit;">{{ dados.get('padrao_resposta', '') }}</textarea>
+        </div>
+      </fieldset>
+
+      <!-- Seção 4: Situação -->
+      <fieldset class="card" style="padding: 24px; border: 1.5px solid var(--color-border); border-radius: 10px; background: #ffffff;">
+        <legend style="font-size: 1.15rem; font-weight: 700; padding: 0 8px; margin-bottom: 12px;">
+          4. Situação
+        </legend>
+        <label style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer;">
+          <input type="checkbox"
+                 name="anulada"
+                 id="campo-anulada"
+                 value="1"
+                 {% if dados.get('anulada') in ['1', True, 'true'] %}checked{% endif %}>
+          Questão anulada pelo INEP
+        </label>
+        <p class="text-muted" style="margin: 6px 0 0 24px; font-size: 0.8125rem;">
+          Questões anuladas continuam visíveis no banco de questões para estudo, mas não entram em simulados nem no cálculo de desempenho (RN03).
+        </p>
+      </fieldset>
+
+      <!-- Botões de Ação do Formulário -->
+      <div style="display: flex; gap: 16px; align-items: center; padding-top: 8px;">
+        <button type="submit" class="btn btn-primary" style="min-height: 44px; padding: 0 24px; font-size: 1rem;">
+          Salvar questão
+        </button>
+        <a href="{{ url_for('admin.questoes') }}" class="btn btn-secondary" style="min-height: 44px; padding: 0 20px;">
+          Cancelar
+        </a>
+      </div>
+
+    </form>
+
+    <!-- Checklist Lateral de Conformidade RN02 (Tempo Real com Vanilla JS) -->
+    <aside class="checklist-card" aria-label="Validação em tempo real das regras da questão">
+      <h2 style="font-size: 1.05rem; margin: 0 0 4px;">Checklist de validação</h2>
+      <p class="text-muted" style="margin: 0 0 12px; font-size: 0.8125rem;">
+        Todas as regras de RN02 devem estar atendidas para o salvamento:
+      </p>
+
+      <ul class="checklist-list" id="checklist-rn02">
+        <li class="checklist-item" id="chk-ano">
+          <span class="chk-status" aria-hidden="true">&cir;</span>
+          <span>Ano preenchido</span>
+        </li>
+        <li class="checklist-item" id="chk-curso">
+          <span class="chk-status" aria-hidden="true">&cir;</span>
+          <span>Curso selecionado</span>
+        </li>
+        <li class="checklist-item" id="chk-numero">
+          <span class="chk-status" aria-hidden="true">&cir;</span>
+          <span>Número da questão preenchido</span>
+        </li>
+        <li class="checklist-item" id="chk-componente-area">
+          <span class="chk-status" aria-hidden="true">&cir;</span>
+          <span>Componente e área selecionados</span>
+        </li>
+        <li class="checklist-item" id="chk-enunciado">
+          <span class="chk-status" aria-hidden="true">&cir;</span>
+          <span>Enunciado preenchido</span>
+        </li>
+        <li class="checklist-item" id="chk-respostas">
+          <span class="chk-status" aria-hidden="true">&cir;</span>
+          <span>Gabarito e alternativas/padrão definidos</span>
+        </li>
+      </ul>
+    </aside>
+
+  </div>
+
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin_questao_form.js') }}"></script>
+{% endblock %}

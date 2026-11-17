@@ -1,0 +1,229 @@
+{% extends "base_app.html" if current_user.is_authenticated else "base_publica.html" %}
+
+{% set ativo = "questoes" %}
+
+{% block title %}Banco de questões — Apoio ENADE{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 32px; padding-bottom: 60px;">
+  <h1 style="margin: 0 0 20px; font-size: 1.85rem;">Banco de quest&otilde;es</h1>
+
+  <div class="banco-layout">
+    <!-- Barra Lateral de Filtros (GET) -->
+    <aside class="filter-sidebar" aria-label="Filtros de questões">
+      <form method="GET" action="{{ url_for('main.questoes') }}" id="form-filtros">
+        <!-- Cabeçalho dos filtros -->
+        <div class="filter-header" style="margin-bottom: 14px;">
+          <strong style="font-size: 1.1rem;">Filtros</strong>
+          <a href="{{ url_for('main.questoes') }}" style="font-size: 0.875rem; color: var(--color-text);">
+            Limpar
+          </a>
+        </div>
+
+        <!-- Curso -->
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label" for="curso" style="font-size: 0.875rem;">Curso</label>
+          <select class="form-control" id="curso" name="curso" style="min-height: 40px; font-size: 0.9rem;">
+            {% for c in cursos %}
+              <option value="{{ c.id }}" {% if c.id == filtros.curso_id %}selected{% endif %}>
+                {{ c.nome }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Ano -->
+        <fieldset class="filter-fieldset" style="margin-bottom: 14px;">
+          <legend class="filter-legend">Ano</legend>
+          {% for ano_val in anos_disponiveis %}
+            <label class="filter-opt">
+              <input type="checkbox" name="ano" value="{{ ano_val }}" {% if ano_val in filtros.anos %}checked{% endif %}>
+              <span>{{ ano_val }}</span>
+            </label>
+          {% endfor %}
+        </fieldset>
+
+        <!-- Componente -->
+        <fieldset class="filter-fieldset" style="margin-bottom: 14px;">
+          <legend class="filter-legend">Componente</legend>
+          <label class="filter-opt">
+            <input type="radio" name="componente" value="todos" {% if filtros.componente == 'todos' %}checked{% endif %}>
+            <span>Todos</span>
+          </label>
+          <label class="filter-opt">
+            <input type="radio" name="componente" value="formacao_geral" {% if filtros.componente == 'formacao_geral' %}checked{% endif %}>
+            <span>Forma&ccedil;&atilde;o Geral</span>
+          </label>
+          <label class="filter-opt">
+            <input type="radio" name="componente" value="especifico" {% if filtros.componente == 'especifico' %}checked{% endif %}>
+            <span>Componente Espec&iacute;fico</span>
+          </label>
+        </fieldset>
+
+        <!-- Área de Conhecimento -->
+        <fieldset class="filter-fieldset" style="margin-bottom: 14px;">
+          <legend class="filter-legend">&Aacute;rea de conhecimento</legend>
+          {% for area_val in areas_disponiveis %}
+            <label class="filter-opt">
+              <input type="checkbox" name="area" value="{{ area_val }}" {% if area_val in filtros.areas %}checked{% endif %}>
+              <span>{{ area_val }}</span>
+            </label>
+          {% endfor %}
+        </fieldset>
+
+        <!-- Tipo -->
+        <fieldset class="filter-fieldset" style="margin-bottom: 14px;">
+          <legend class="filter-legend">Tipo</legend>
+          <label class="filter-opt">
+            <input type="checkbox" name="tipo" value="objetiva" {% if 'objetiva' in filtros.tipos %}checked{% endif %}>
+            <span>Objetiva</span>
+          </label>
+          <label class="filter-opt">
+            <input type="checkbox" name="tipo" value="discursiva" {% if 'discursiva' in filtros.tipos %}checked{% endif %}>
+            <span>Discursiva</span>
+          </label>
+        </fieldset>
+
+        <!-- Situação (somente para usuário logado) -->
+        {% if current_user.is_authenticated %}
+          <fieldset class="filter-fieldset" style="margin-bottom: 16px;">
+            <legend class="filter-legend">Situa&ccedil;&atilde;o</legend>
+            <label class="filter-opt">
+              <input type="checkbox" name="situacao" value="nao_respondidas" {% if 'nao_respondidas' in filtros.situacoes %}checked{% endif %}>
+              <span>N&atilde;o respondidas</span>
+            </label>
+            <label class="filter-opt">
+              <input type="checkbox" name="situacao" value="errei" {% if 'errei' in filtros.situacoes %}checked{% endif %}>
+              <span>Errei</span>
+            </label>
+          </fieldset>
+        {% endif %}
+
+        <!-- Preserva busca e ordem no form lateral se já preenchidos -->
+        {% if filtros.busca %}
+          <input type="hidden" name="q" value="{{ filtros.busca }}">
+        {% endif %}
+        {% if filtros.ordem %}
+          <input type="hidden" name="ordem" value="{{ filtros.ordem }}">
+        {% endif %}
+
+        <button type="submit" class="btn btn-primary btn-block">Aplicar filtros</button>
+      </form>
+    </aside>
+
+    <!-- Lista de Resultados -->
+    <section class="results-section" aria-label="Resultados das questões">
+      <!-- Barra de Busca e Ordenação -->
+      <form method="GET" action="{{ url_for('main.questoes') }}" class="search-bar-row">
+        <!-- Preserva os filtros selecionados ao fazer busca ou mudar ordem -->
+        <input type="hidden" name="curso" value="{{ filtros.curso_id }}">
+        {% for a in filtros.anos %}<input type="hidden" name="ano" value="{{ a }}">{% endfor %}
+        <input type="hidden" name="componente" value="{{ filtros.componente }}">
+        {% for ar in filtros.areas %}<input type="hidden" name="area" value="{{ ar }}">{% endfor %}
+        {% for tp in filtros.tipos %}<input type="hidden" name="tipo" value="{{ tp }}">{% endfor %}
+        {% for sit in filtros.situacoes %}<input type="hidden" name="situacao" value="{{ sit }}">{% endfor %}
+
+        <div style="flex: 1 1 260px;">
+          <label for="busca" class="visually-hidden" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Buscar no enunciado</label>
+          <input class="form-control" id="busca" name="q" type="search" placeholder="Buscar no enunciado…" value="{{ filtros.busca }}" style="min-height: 42px;">
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label for="ordem" class="text-muted" style="font-size: 0.875rem; white-space: nowrap;">Ordenar</label>
+          <select class="form-control" id="ordem" name="ordem" onchange="this.form.submit()" style="min-height: 42px; width: 180px; font-size: 0.9rem;">
+            <option value="recentes" {% if filtros.ordem == 'recentes' %}selected{% endif %}>Mais recentes</option>
+            <option value="numero" {% if filtros.ordem == 'numero' %}selected{% endif %}>N&uacute;mero da quest&atilde;o</option>
+          </select>
+        </div>
+      </form>
+
+      <!-- Resumo de Filtros -->
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; font-size: 0.95rem;">
+        <strong>{{ paginacao.total }} quest&otilde;es encontradas</strong>
+        {% if resumo_filtros %}
+          <span class="text-muted">&middot; {{ resumo_filtros }}</span>
+        {% endif %}
+      </div>
+
+      <!-- Itens de Questão -->
+      {% if questoes %}
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          {% for q in questoes %}
+            <a class="question-item" href="{{ url_for('main.detalhe_questao', id=q.id, **request.args) }}">
+              <div class="question-item-header">
+                <span class="question-num">Quest&atilde;o {{ q.numero }}</span>
+                <span class="tag">{{ q.ano }}</span>
+                <span class="tag">{% if q.componente == 'formacao_geral' %}Forma&ccedil;&atilde;o Geral{% else %}Espec&iacute;fico{% endif %}</span>
+                <span class="tag">{{ q.area }}</span>
+                <span class="tag">{% if q.tipo == 'objetiva' %}Objetiva{% else %}Discursiva{% endif %}</span>
+
+                {% if q.anulada %}
+                  <!-- Etiqueta preta Anulada pelo INEP (RN03) -->
+                  <span class="tag tag-anulada">Anulada pelo INEP</span>
+                {% endif %}
+
+                {% if current_user.is_authenticated and q.id in status_map %}
+                  <span class="status-badge {{ status_map[q.id].classe }}" style="margin-left: auto;">
+                    {{ status_map[q.id].texto }}
+                  </span>
+                {% endif %}
+              </div>
+              <div class="question-item-snippet">
+                {{ q.enunciado | truncate(150, true, '…') }}
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+
+        <!-- Paginação de 10 em 10 -->
+        {% if paginacao.pages > 1 %}
+          <nav aria-label="Paginação de questões" class="pagination-nav">
+            {% if paginacao.has_prev %}
+              <a class="btn btn-secondary" href="{{ url_for('main.questoes', **dict(request.args, pagina=paginacao.prev_num)) }}" aria-label="Página anterior">
+                &lsaquo;
+              </a>
+            {% else %}
+              <button class="btn btn-secondary" disabled aria-disabled="true">&lsaquo;</button>
+            {% endif %}
+
+            {% for p in paginacao.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+              {% if p %}
+                {% if p == paginacao.page %}
+                  <span class="btn btn-primary" aria-current="page">{{ p }}</span>
+                {% else %}
+                  <a class="btn btn-secondary" href="{{ url_for('main.questoes', **dict(request.args, pagina=p)) }}">{{ p }}</a>
+                {% endif %}
+              {% else %}
+                <span class="btn btn-secondary" disabled style="border: 0; background: none;">&hellip;</span>
+              {% endif %}
+            {% endfor %}
+
+            {% if paginacao.has_next %}
+              <a class="btn btn-secondary" href="{{ url_for('main.questoes', **dict(request.args, pagina=paginacao.next_num)) }}" aria-label="Próxima página">
+                &rsaquo;
+              </a>
+            {% else %}
+              <button class="btn btn-secondary" disabled aria-disabled="true">&rsaquo;</button>
+            {% endif %}
+          </nav>
+        {% endif %}
+      {% else %}
+        <!-- Estado Vazio (US04) -->
+        <div class="card" style="text-align: center; padding: 48px 24px; margin-top: 8px;">
+          <h2 style="font-size: 1.35rem; margin-bottom: 8px;">Nenhuma quest&atilde;o encontrada</h2>
+          <p class="text-muted" style="margin-bottom: 20px;">
+            Nenhuma quest&atilde;o atende a todos os crit&eacute;rios de filtros selecionados. Tente remover alguns filtros ou buscar por outro termo.
+          </p>
+          <a class="btn btn-secondary" href="{{ url_for('main.questoes') }}">
+            Limpar todos os filtros
+          </a>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/questoes.js') }}"></script>
+{% endblock %}
