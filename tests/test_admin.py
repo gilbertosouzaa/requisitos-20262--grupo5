@@ -365,13 +365,13 @@ def test_t14_unicidade_ano_curso_numero(client, app):
     with app.app_context():
         cc_id = Curso.query.filter_by(nome="Ciência da Computação").first().id
 
-    # Q1 já existe para CC em 2023
+    # Q11 já existe para CC em 2023 (Componente Específico)
     dados = {
         'curso_id': cc_id,
         'ano': 2023,
-        'numero': 1,
-        'componente': 'formacao_geral',
-        'area': 'Interpretação',
+        'numero': 11,
+        'componente': 'especifico',
+        'area': 'Algoritmos',
         'tipo': 'objetiva',
         'enunciado': 'Tentativa duplicada.',
         'gabarito_oficial': 'B',
@@ -381,7 +381,22 @@ def test_t14_unicidade_ano_curso_numero(client, app):
     res = client.post('/admin/questoes/nova', data=dados)
     assert res.status_code == 400
     html = res.get_data(as_text=True)
-    assert "Já existe uma questão de número 1 no ENADE 2023 para este curso" in html
+    assert "Já existe uma questão de número 11 no ENADE 2023 para este curso" in html
+
+    # Q1 já existe para Formação Geral em 2023
+    dados_fg = {
+        'ano': 2023,
+        'numero': 1,
+        'componente': 'formacao_geral',
+        'area': 'Interpretação',
+        'tipo': 'objetiva',
+        'enunciado': 'Tentativa duplicada FG.',
+        'gabarito_oficial': 'B',
+        'alt_A': 'A', 'alt_B': 'B', 'alt_C': 'C', 'alt_D': 'D', 'alt_E': 'E'
+    }
+    res_fg = client.post('/admin/questoes/nova', data=dados_fg)
+    assert res_fg.status_code == 400
+    assert "Já existe uma questão de Formação Geral número 1 no ENADE 2023" in res_fg.get_data(as_text=True)
 
 
 def test_t14_duplicar_questao(client, app):

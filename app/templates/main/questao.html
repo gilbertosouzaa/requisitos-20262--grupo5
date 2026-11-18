@@ -254,7 +254,7 @@
       <section class="info-box">
         <h2 style="font-size: 1.05rem; margin: 0 0 10px;">Sobre a quest&atilde;o</h2>
         <div class="kv-row"><span class="text-muted">Edi&ccedil;&atilde;o</span><strong>ENADE {{ questao.ano }}</strong></div>
-        <div class="kv-row"><span class="text-muted">Curso</span><strong>{{ questao.curso.nome }}</strong></div>
+        <div class="kv-row"><span class="text-muted">Curso</span><strong>{{ questao.curso.nome if questao.curso else 'Comum a todos os cursos' }}</strong></div>
         <div class="kv-row">
           <span class="text-muted">Componente</span>
           <strong>{% if questao.componente == 'formacao_geral' %}Forma&ccedil;&atilde;o Geral{% else %}Espec&iacute;fico{% endif %}</strong>

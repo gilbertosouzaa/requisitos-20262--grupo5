@@ -27,7 +27,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function atualizarEstadoCards() {
-    if (radioCompleto.checked) {
+    if (radioCompleto && radioCompleto.disabled) {
+      if (radioParcial) radioParcial.checked = true;
+      if (cardParcial) cardParcial.classList.add('selected');
+      if (cardCompleto) cardCompleto.classList.remove('selected');
+      atualizarResumo();
+      return;
+    }
+
+    if (radioCompleto && radioCompleto.checked) {
       cardCompleto.classList.add('selected');
       cardParcial.classList.remove('selected');
     } else {
@@ -104,6 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (radioCompleto) radioCompleto.addEventListener('change', atualizarEstadoCards);
   if (radioParcial) radioParcial.addEventListener('change', atualizarEstadoCards);
   if (cardCompleto) cardCompleto.addEventListener('click', (e) => {
+    if (radioCompleto && radioCompleto.disabled) return;
     if (e.target.tagName !== 'SELECT' && e.target.tagName !== 'OPTION') {
       radioCompleto.checked = true;
       atualizarEstadoCards();

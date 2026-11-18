@@ -62,9 +62,10 @@
           <!-- Curso -->
           <div class="form-group" style="margin: 0;">
             <label for="campo-curso_id" style="font-weight: 600; font-size: 0.875rem;">
-              Curso <span style="color: var(--color-danger-text);">*</span>
+              Curso <span id="label-curso-obrigatorio" style="color: var(--color-danger-text); {% if dados.get('componente') == 'formacao_geral' %}display: none;{% endif %}">*</span>
             </label>
-            <select id="campo-curso_id" name="curso_id" class="form-control" required>
+            <select id="campo-curso_id" name="curso_id" class="form-control"
+                    {% if dados.get('componente') == 'formacao_geral' %}disabled{% else %}required{% endif %}>
               <option value="">Selecione o curso...</option>
               {% for c in cursos %}
                 <option value="{{ c.id }}" {% if dados.get('curso_id')|string == c.id|string %}selected{% endif %}>
@@ -72,6 +73,13 @@
                 </option>
               {% endfor %}
             </select>
+            <span class="text-muted" id="ajuda-curso" style="font-size: 0.75rem; margin-top: 4px; display: block;">
+              {% if dados.get('componente') == 'formacao_geral' %}
+                Questões de Formação Geral valem para todos os cursos.
+              {% else %}
+                Obrigatório para o Componente Específico.
+              {% endif %}
+            </span>
           </div>
 
           <!-- Ano -->

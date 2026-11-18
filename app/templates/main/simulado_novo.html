@@ -34,20 +34,30 @@
     <div role="radiogroup" aria-label="Tipo de simulado" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; align-items: start;">
       
       <!-- Cartão 1: Prova Completa -->
-      <section id="card-completo" class="simulado-option-card selected">
-        <label for="tipo-completo" style="display: flex; gap: 12px; align-items: center; cursor: pointer;">
-          <input type="radio" id="tipo-completo" name="tipo" value="completo" checked style="width: 22px; height: 22px; margin: 0; cursor: pointer;">
+      <section id="card-completo" class="simulado-option-card {% if tem_edicao_completa %}selected{% else %}disabled-card{% endif %}"
+               style="{% if not tem_edicao_completa %}opacity: 0.65; background-color: #f9f9f9;{% endif %}">
+        <label for="tipo-completo" style="display: flex; gap: 12px; align-items: center; {% if tem_edicao_completa %}cursor: pointer;{% else %}cursor: not-allowed;{% endif %}">
+          <input type="radio" id="tipo-completo" name="tipo" value="completo"
+                 {% if tem_edicao_completa %}checked{% else %}disabled{% endif %}
+                 style="width: 22px; height: 22px; margin: 0; {% if tem_edicao_completa %}cursor: pointer;{% else %}cursor: not-allowed;{% endif %}">
           <span style="font-size: 1.35rem; font-weight: 700;">Prova completa</span>
         </label>
+        
+        {% if not tem_edicao_completa %}
+          <div class="alert-box alert-warning" style="margin: 8px 0; font-size: 0.875rem; border: 1.5px solid #ffeeba; background-color: #fff3cd; color: #856404; padding: 8px 12px; border-radius: 6px;">
+            Ainda não há uma edição completa do seu curso
+          </div>
+        {% endif %}
+
         <p class="text-muted" style="margin: 0; font-size: 0.95rem; line-height: 1.45;">
-          Igual &agrave; prova real: Forma&ccedil;&atilde;o Geral + Componente Espec&iacute;fico, objetivas e discursivas.
+          Igual à prova real: Formação Geral + Componente Específico, objetivas e discursivas.
         </p>
         <div style="display: flex; gap: 28px; margin: 4px 0;">
           <div>
             <div id="display-qtd-completo" style="font-size: 2rem; font-weight: 800; line-height: 1;">
               {% if edicoes and edicoes[0].validas %}{{ edicoes[0].validas }}{% else %}40{% endif %}
             </div>
-            <div class="text-muted" style="font-size: 0.8125rem;">quest&otilde;es</div>
+            <div class="text-muted" style="font-size: 0.8125rem;">questões</div>
           </div>
           <div>
             <div style="font-size: 2rem; font-weight: 800; line-height: 1;">4h00</div>
@@ -56,8 +66,8 @@
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 6px;">
-          <label class="form-label" for="edicao">Edi&ccedil;&atilde;o</label>
-          <select class="form-input" id="edicao" name="edicao">
+          <label class="form-label" for="edicao">Edição</label>
+          <select class="form-input" id="edicao" name="edicao" {% if not tem_edicao_completa %}disabled{% endif %}>
             {% for ed in edicoes %}
               <option value="{{ ed.ano }}" data-anuladas="{{ ed.anuladas }}" data-validas="{{ ed.validas }}">
                 {{ ed.label }}
@@ -83,9 +93,11 @@
       </section>
 
       <!-- Cartão 2: Simulado Parcial -->
-      <section id="card-parcial" class="simulado-option-card">
+      <section id="card-parcial" class="simulado-option-card {% if not tem_edicao_completa %}selected{% endif %}">
         <label for="tipo-parcial" style="display: flex; gap: 12px; align-items: center; cursor: pointer;">
-          <input type="radio" id="tipo-parcial" name="tipo" value="parcial" style="width: 22px; height: 22px; margin: 0; cursor: pointer;">
+          <input type="radio" id="tipo-parcial" name="tipo" value="parcial"
+                 {% if not tem_edicao_completa %}checked{% endif %}
+                 style="width: 22px; height: 22px; margin: 0; cursor: pointer;">
           <span style="font-size: 1.35rem; font-weight: 700;">Simulado parcial</span>
         </label>
         <p class="text-muted" style="margin: 0; font-size: 0.95rem; line-height: 1.45;">

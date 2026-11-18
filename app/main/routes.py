@@ -34,14 +34,22 @@ def obter_respostas_mais_recentes(usuario_id):
 
 def filtrar_questoes_query(args, usuario=None):
     """Aplica os filtros da query string retornando a query filtrada e dados auxiliares."""
-    curso_id = args.get('curso', type=int)
-    if not curso_id:
+    curso_param = args.get('curso')
+    curso_id = None
+    if curso_param is not None:
+        if curso_param not in ('', 'todos', '0'):
+            try:
+                curso_id = int(curso_param)
+            except ValueError:
+                curso_id = None
+        else:
+            curso_id = None  # Explicitamente "Todos os cursos"
+    else:
+        # Padrão: curso do estudante autenticado (premissa P7)
         if usuario and usuario.is_authenticated and usuario.curso_id:
             curso_id = usuario.curso_id
         else:
-            primeiro_curso = Curso.query.order_by(Curso.id.asc()).first()
-            if primeiro_curso:
-                curso_id = primeiro_curso.id
+            curso_id = None
 
     anos = args.getlist('ano', type=int)
     componente = args.get('componente', 'todos')
@@ -53,17 +61,35 @@ def filtrar_questoes_query(args, usuario=None):
 
     query = Questao.query
 
-    # Filtro Curso
+    # Filtro Curso:
+    # Formação Geral é comum a todos os cursos numa mesma edição do ENADE.
+    # Se curso_id foi especificado:
+    # - Se o curso possui questões específicas cadastradas: traz questões de Formação Geral OU do Componente Específico desse curso.
+    # - Se o curso NÃO possui questões específicas cadastradas e componente != 'formacao_geral': filtra por curso_id (resultando em 0 questões),
+    #   exibindo o estado vazio com orientação e botão 'Ver Formação Geral'.
     if curso_id:
-        query = query.filter(Questao.curso_id == curso_id)
+        tem_especifico = (Questao.query.filter_by(curso_id=curso_id, componente='especifico').first() is not None)
+        if componente == 'formacao_geral':
+            query = query.filter(Questao.componente == 'formacao_geral')
+        elif componente == 'especifico':
+            query = query.filter(Questao.componente == 'especifico', Questao.curso_id == curso_id)
+        else:  # componente == 'todos'
+            if tem_especifico:
+                query = query.filter(
+                    db.or_(
+                        Questao.componente == 'formacao_geral',
+                        Questao.curso_id == curso_id
+                    )
+                )
+            else:
+                query = query.filter(Questao.curso_id == curso_id)
+    else:
+        if componente in ('formacao_geral', 'especifico'):
+            query = query.filter(Questao.componente == componente)
 
     # Filtro Ano
     if anos:
         query = query.filter(Questao.ano.in_(anos))
-
-    # Filtro Componente
-    if componente in ('formacao_geral', 'especifico'):
-        query = query.filter(Questao.componente == componente)
 
     # Filtro Área
     if areas:
@@ -269,9 +295,20 @@ def questoes():
     """T06 - Banco de questões com filtros e busca (RF04, US04, RN01)."""
     cursos = Curso.query.order_by(Curso.nome.asc()).all()
     anos_disponiveis = [r[0] for r in db.session.query(Questao.ano).distinct().order_by(Questao.ano.desc()).all()]
-    areas_disponiveis = [r[0] for r in db.session.query(Questao.area).distinct().order_by(Questao.area.asc()).all()]
 
     query, filtros = filtrar_questoes_query(request.args, current_user)
+
+    if filtros['curso_id']:
+        areas_disponiveis = [
+            r[0] for r in db.session.query(Questao.area)
+            .filter(db.or_(Questao.componente == 'formacao_geral', Questao.curso_id == filtros['curso_id']))
+            .distinct()
+            .order_by(Questao.area.asc())
+            .all()
+        ]
+    else:
+        areas_disponiveis = [r[0] for r in db.session.query(Questao.area).distinct().order_by(Questao.area.asc()).all()]
+
     pagina = request.args.get('pagina', 1, type=int)
     paginacao = query.paginate(page=pagina, per_page=10, error_out=False)
 
@@ -295,6 +332,9 @@ def questoes():
     curso_selecionado = next((c for c in cursos if c.id == filtros['curso_id']), None)
     if curso_selecionado:
         filtros_ativos.append(curso_selecionado.nome)
+    elif request.args.get('curso') == 'todos':
+        filtros_ativos.append('Todos os cursos')
+
     for a in filtros['anos']:
         filtros_ativos.append(str(a))
     if filtros['componente'] == 'formacao_geral':
@@ -312,10 +352,20 @@ def questoes():
 
     resumo_filtros = " · ".join(filtros_ativos) if filtros_ativos else ""
 
+    # Estado vazio customizado (item 4 do requisito):
+    # Quando o filtro de curso não tiver nenhuma questão cadastrada
+    sem_questoes_especificas = False
+    if curso_selecionado and paginacao.total == 0:
+        total_especifico_curso = Questao.query.filter_by(curso_id=curso_selecionado.id, componente='especifico').count()
+        if total_especifico_curso == 0 or filtros['componente'] == 'especifico':
+            sem_questoes_especificas = True
+
     return render_template(
         'main/questoes.html',
         ativo='questoes',
         cursos=cursos,
+        curso_selecionado=curso_selecionado,
+        sem_questoes_especificas=sem_questoes_especificas,
         anos_disponiveis=anos_disponiveis,
         areas_disponiveis=areas_disponiveis,
         filtros=filtros,
@@ -468,14 +518,10 @@ def responder_questao_api(id):
     db.session.commit()
 
     # Prepara resposta para renderização no client-side
-    esta_publicado = (questao.comentario_status == 'publicado')
-    comentario_em_elaboracao = not (esta_publicado and bool(questao.comentario_correta and questao.comentario_correta.strip()))
-
-    comentarios_erro = {}
-    comentario_correta = None
-    if esta_publicado:
-        comentario_correta = questao.comentario_correta
-        comentarios_erro = {alt.letra: (alt.comentario_erro or '') for alt in questao.alternativas if alt.comentario_erro and alt.comentario_erro.strip()}
+    comentario_publicado = (questao.comentario_status == 'publicado')
+    comentarios_erro = {alt.letra: (alt.comentario_erro or '') for alt in questao.alternativas} if comentario_publicado else {}
+    comentario_correta = questao.comentario_correta if comentario_publicado else None
+    comentario_em_elaboracao = not bool(comentario_publicado and questao.comentario_correta and questao.comentario_correta.strip())
 
     return jsonify({
         'sucesso': True,
@@ -528,22 +574,27 @@ def novo_simulado():
         primeiro_curso = Curso.query.order_by(Curso.id.asc()).first()
         curso_id = primeiro_curso.id if primeiro_curso else None
 
-    # Consulta edições completas do curso
+    # Consulta edições completas do curso (Formação Geral + Específico do curso)
     anos_edicoes = [
         r[0] for r in db.session.query(Questao.ano)
-        .filter(Questao.curso_id == curso_id)
+        .filter(db.or_(Questao.componente == 'formacao_geral', Questao.curso_id == curso_id))
         .distinct()
         .order_by(Questao.ano.desc())
         .all()
     ]
 
+    curso_obj = db.session.get(Curso, curso_id)
+    curso_nome = curso_obj.nome if curso_obj else ""
+
     edicoes_info = []
     for ano in anos_edicoes:
-        total_q = Questao.query.filter_by(curso_id=curso_id, ano=ano).count()
-        anuladas_q = Questao.query.filter_by(curso_id=curso_id, ano=ano, anulada=True).count()
+        q_edicao = Questao.query.filter(
+            Questao.ano == ano,
+            db.or_(Questao.componente == 'formacao_geral', Questao.curso_id == curso_id)
+        )
+        total_q = q_edicao.count()
+        anuladas_q = q_edicao.filter(Questao.anulada == True).count()
         validas_q = total_q - anuladas_q
-        curso_obj = db.session.get(Curso, curso_id)
-        curso_nome = curso_obj.nome if curso_obj else ""
         edicoes_info.append({
             'ano': ano,
             'label': f"ENADE {ano} · {curso_nome}",
@@ -552,10 +603,17 @@ def novo_simulado():
             'validas': validas_q
         })
 
-    # Consulta áreas disponíveis do curso (não anuladas)
+    # Uma edição completa deve possuir 40 questões (10 FG + 30 Específico)
+    edicoes_completas = [e for e in edicoes_info if e['total'] >= 40]
+    tem_edicao_completa = len(edicoes_completas) > 0
+
+    # Consulta áreas disponíveis do curso (não anuladas: FG comuns + curso_id)
     areas_disponiveis = [
         r[0] for r in db.session.query(Questao.area)
-        .filter(Questao.curso_id == curso_id, Questao.anulada == False)
+        .filter(
+            db.or_(Questao.componente == 'formacao_geral', Questao.curso_id == curso_id),
+            Questao.anulada == False
+        )
         .distinct()
         .order_by(Questao.area.asc())
         .all()
@@ -565,14 +623,18 @@ def novo_simulado():
         tipo = request.form.get('tipo', 'completo')
 
         if tipo == 'completo':
-            ano_sel = request.form.get('edicao', type=int)
-            if not ano_sel and edicoes_info:
-                ano_sel = edicoes_info[0]['ano']
+            if not tem_edicao_completa:
+                flash("Ainda não há uma edição completa do seu curso.", "danger")
+                return redirect(url_for('main.novo_simulado'))
 
-            # Questões não anuladas da edição, ordenadas por numero (RN03)
+            ano_sel = request.form.get('edicao', type=int)
+            if not ano_sel and edicoes_completas:
+                ano_sel = edicoes_completas[0]['ano']
+
+            # Questões não anuladas da edição completa (FG + Específico do curso)
             questoes = Questao.query.filter(
-                Questao.curso_id == curso_id,
                 Questao.ano == ano_sel,
+                db.or_(Questao.componente == 'formacao_geral', Questao.curso_id == curso_id),
                 Questao.anulada == False
             ).order_by(Questao.numero.asc()).all()
 
@@ -608,12 +670,23 @@ def novo_simulado():
                 flash("A quantidade de questões deve ser entre 5 e 40.", "danger")
                 return redirect(url_for('main.novo_simulado'))
 
-            q_query = Questao.query.filter(
-                Questao.curso_id == curso_id,
-                Questao.anulada == False
-            )
-            if componente in ('especifico', 'formacao_geral'):
-                q_query = q_query.filter(Questao.componente == componente)
+            if componente == 'formacao_geral':
+                q_query = Questao.query.filter(
+                    Questao.componente == 'formacao_geral',
+                    Questao.anulada == False
+                )
+            elif componente == 'especifico':
+                q_query = Questao.query.filter(
+                    Questao.componente == 'especifico',
+                    Questao.curso_id == curso_id,
+                    Questao.anulada == False
+                )
+            else:
+                q_query = Questao.query.filter(
+                    db.or_(Questao.componente == 'formacao_geral', Questao.curso_id == curso_id),
+                    Questao.anulada == False
+                )
+
             if area and area != 'todas':
                 q_query = q_query.filter(Questao.area == area)
 
@@ -651,7 +724,8 @@ def novo_simulado():
     return render_template(
         'main/simulado_novo.html',
         ativo='simulados',
-        edicoes=edicoes_info,
+        tem_edicao_completa=tem_edicao_completa,
+        edicoes=edicoes_completas if tem_edicao_completa else edicoes_info,
         areas=areas_disponiveis
     )
 
@@ -1086,9 +1160,9 @@ def revisao_questao_simulado(id, questao_id):
 
     resposta = SimuladoResposta.query.filter_by(simulado_id=simulado.id, questao_id=questao.id).first()
 
-    esta_publicado = (questao.comentario_status == 'publicado')
-    comentarios_erro = {alt.letra: (alt.comentario_erro or '') for alt in questao.alternativas} if esta_publicado else {}
-    comentario_em_elaboracao = not (esta_publicado and bool(questao.comentario_correta and questao.comentario_correta.strip()))
+    comentario_publicado = (questao.comentario_status == 'publicado')
+    comentarios_erro = {alt.letra: (alt.comentario_erro or '') for alt in questao.alternativas} if comentario_publicado else {}
+    comentario_em_elaboracao = not bool(comentario_publicado and questao.comentario_correta and questao.comentario_correta.strip())
 
     return render_template(
         'main/questao_simulado_revisao.html',

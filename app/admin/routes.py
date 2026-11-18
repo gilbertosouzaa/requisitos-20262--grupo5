@@ -337,9 +337,14 @@ def processar_salvar_questao(questao_existente=None):
     imagem_descricao = form.get('imagem_descricao', '').strip()
     remover_imagem = bool(form.get('remover_imagem'))
 
-    # RN02: Toda questão tem ano, curso, componente, área, tipo e gabarito oficial
-    if not curso_id:
-        erros.append({'campo': 'curso_id', 'mensagem': 'Selecione o curso.'})
+    # RN02: Toda questão tem ano, componente, área, tipo e gabarito oficial.
+    # Curso é obrigatório somente para o Componente Específico.
+    if componente == 'especifico':
+        if not curso_id:
+            erros.append({'campo': 'curso_id', 'mensagem': 'Selecione o curso para questões do Componente Específico.'})
+    else:
+        curso_id = None
+
     if not ano:
         erros.append({'campo': 'ano', 'mensagem': 'Informe o ano do ENADE.'})
     elif ano < 1990 or ano > 2100:
@@ -375,11 +380,16 @@ def processar_salvar_questao(questao_existente=None):
         if not padrao_resposta:
             erros.append({'campo': 'padrao_resposta', 'mensagem': 'Informe o padrão de resposta esperado pelo INEP.'})
 
-    # Restrição de unicidade (ano, curso_id, numero)
-    if ano and curso_id and numero:
-        q_dup = Questao.query.filter_by(ano=ano, curso_id=curso_id, numero=numero).first()
-        if q_dup and (not questao_existente or q_dup.id != questao_existente.id):
-            erros.append({'campo': 'numero', 'mensagem': f'Já existe uma questão de número {numero} no ENADE {ano} para este curso.'})
+    # Restrição de unicidade
+    if ano and numero:
+        if componente == 'formacao_geral':
+            q_dup = Questao.query.filter_by(ano=ano, componente='formacao_geral', numero=numero).first()
+            if q_dup and (not questao_existente or q_dup.id != questao_existente.id):
+                erros.append({'campo': 'numero', 'mensagem': f'Já existe uma questão de Formação Geral número {numero} no ENADE {ano}.'})
+        elif curso_id:
+            q_dup = Questao.query.filter_by(ano=ano, curso_id=curso_id, numero=numero).first()
+            if q_dup and (not questao_existente or q_dup.id != questao_existente.id):
+                erros.append({'campo': 'numero', 'mensagem': f'Já existe uma questão de número {numero} no ENADE {ano} para este curso.'})
 
     # Upload de imagem opcional (PNG, JPG até 2MB)
     arquivo_imagem = request.files.get('imagem')
@@ -632,7 +642,9 @@ def importar_questoes():
                 cursos_cache = {c.nome.lower(): c.id for c in Curso.query.all()}
 
                 for item in questoes_validadas:
-                    curso_id = cursos_cache[item['curso'].strip().lower()]
+                    curso_id = None
+                    if item['componente'] == 'especifico' and item.get('curso'):
+                        curso_id = cursos_cache.get(item['curso'].strip().lower())
                     q = Questao(
                         ano=item['ano'],
                         curso_id=curso_id,
@@ -744,10 +756,13 @@ def importar_questoes():
                 erros_da_linha.append("Ano deve ser numérico.")
                 ano_val = None
 
-            if not curso_str:
-                erros_da_linha.append("Curso não informado.")
-            elif curso_str.lower() not in cursos_banco:
-                erros_da_linha.append(f"Curso '{curso_str}' não encontrado no sistema.")
+            if componente == 'especifico':
+                if not curso_str:
+                    erros_da_linha.append("Curso não informado para o Componente Específico.")
+                elif curso_str.lower() not in cursos_banco:
+                    erros_da_linha.append(f"Curso '{curso_str}' não encontrado no sistema.")
+            else:
+                curso_str = curso_str or "Formação Geral (Comum)"
 
             try:
                 numero_val = int(numero_str)
@@ -783,20 +798,31 @@ def importar_questoes():
                 if not padrao:
                     erros_da_linha.append("Padrão de resposta esperado não informado para questão discursiva.")
 
-            # Unicidade (ano, curso, numero)
-            if ano_val and curso_str and numero_val:
-                chave = (ano_val, curso_str.lower(), numero_val)
-                if chave in chaves_no_csv:
-                    erros_da_linha.append(f"Questão repetida no arquivo CSV (Ano {ano_val}, {curso_str}, nº {numero_val}).")
-                else:
-                    chaves_no_csv.add(chave)
+            # Unicidade
+            if ano_val and numero_val:
+                if componente == 'formacao_geral':
+                    chave = (ano_val, 'formacao_geral', numero_val)
+                    if chave in chaves_no_csv:
+                        erros_da_linha.append(f"Questão de Formação Geral repetida no arquivo CSV (Ano {ano_val}, nº {numero_val}).")
+                    else:
+                        chaves_no_csv.add(chave)
 
-                # Unicidade no banco de dados
-                c_id = cursos_banco.get(curso_str.lower())
-                if c_id:
-                    existente = Questao.query.filter_by(ano=ano_val, curso_id=c_id, numero=numero_val).first()
+                    existente = Questao.query.filter_by(ano=ano_val, componente='formacao_geral', numero=numero_val).first()
                     if existente:
-                        erros_da_linha.append(f"Já existe questão cadastrada no sistema com Ano {ano_val}, {curso_str}, nº {numero_val}.")
+                        erros_da_linha.append(f"Já existe questão cadastrada no sistema com Ano {ano_val} (Formação Geral, nº {numero_val}).")
+                else:
+                    if curso_str and curso_str.lower() in cursos_banco:
+                        chave = (ano_val, curso_str.lower(), numero_val)
+                        if chave in chaves_no_csv:
+                            erros_da_linha.append(f"Questão repetida no arquivo CSV (Ano {ano_val}, {curso_str}, nº {numero_val}).")
+                        else:
+                            chaves_no_csv.add(chave)
+
+                        c_id = cursos_banco.get(curso_str.lower())
+                        if c_id:
+                            existente = Questao.query.filter_by(ano=ano_val, curso_id=c_id, numero=numero_val).first()
+                            if existente:
+                                erros_da_linha.append(f"Já existe questão cadastrada no sistema com Ano {ano_val}, {curso_str}, nº {numero_val}.")
 
             if erros_da_linha:
                 erros_linhas.append({

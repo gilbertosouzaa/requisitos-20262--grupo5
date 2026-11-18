@@ -134,7 +134,7 @@
           {% for q in questoes %}
             <tr>
               <td style="font-weight: 700;">{{ q.numero }}</td>
-              <td>{{ q.curso.nome }}</td>
+              <td>{{ q.curso.nome if q.curso else 'Formação Geral (Comum)' }}</td>
               <td>{{ q.ano }}</td>
               <td style="font-size: 0.875rem;">
                 {% if q.componente == 'formacao_geral' %}

@@ -37,6 +37,30 @@ document.addEventListener('DOMContentLoaded', () => {
     ]
   };
 
+  const inputCurso = document.getElementById('campo-curso_id');
+  const labelCursoObrigatorio = document.getElementById('label-curso-obrigatorio');
+  const ajudaCurso = document.getElementById('ajuda-curso');
+
+  function atualizarComponenteCurso() {
+    const isFG = radioCompFG && radioCompFG.checked;
+    if (inputCurso) {
+      if (isFG) {
+        inputCurso.disabled = true;
+        inputCurso.value = "";
+        inputCurso.removeAttribute('required');
+      } else {
+        inputCurso.disabled = false;
+        inputCurso.setAttribute('required', 'required');
+      }
+    }
+    if (labelCursoObrigatorio) {
+      labelCursoObrigatorio.style.display = isFG ? 'none' : 'inline';
+    }
+    if (ajudaCurso) {
+      ajudaCurso.textContent = isFG ? 'Questões de Formação Geral valem para todos os cursos.' : 'Obrigatório para o Componente Específico.';
+    }
+  }
+
   function atualizarSugestoesAreas() {
     if (!dataListAreas) return;
     const comp = radioCompFG && radioCompFG.checked ? 'formacao_geral' : 'especifico';
@@ -50,8 +74,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if (radioCompFG) radioCompFG.addEventListener('change', () => { atualizarSugestoesAreas(); atualizarChecklist(); });
-  if (radioCompEsp) radioCompEsp.addEventListener('change', () => { atualizarSugestoesAreas(); atualizarChecklist(); });
+  if (radioCompFG) radioCompFG.addEventListener('change', () => { atualizarComponenteCurso(); atualizarSugestoesAreas(); atualizarChecklist(); });
+  if (radioCompEsp) radioCompEsp.addEventListener('change', () => { atualizarComponenteCurso(); atualizarSugestoesAreas(); atualizarChecklist(); });
+  atualizarComponenteCurso();
   atualizarSugestoesAreas();
 
   // --------------------------------------------------------------------------
@@ -141,8 +166,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const anoVal = inputAno ? parseInt(inputAno.value, 10) : 0;
     setItemStatus(chkAno, anoVal >= 1990 && anoVal <= 2100);
 
-    // 2. Curso
-    setItemStatus(chkCurso, inputCurso && Boolean(inputCurso.value));
+    // 2. Curso (RN02: obrigatório só para o Componente Específico)
+    const isFG = radioCompFG && radioCompFG.checked;
+    if (isFG) {
+      setItemStatus(chkCurso, true);
+    } else {
+      setItemStatus(chkCurso, inputCurso && Boolean(inputCurso.value));
+    }
 
     // 3. Número
     const numVal = inputNum ? parseInt(inputNum.value, 10) : 0;

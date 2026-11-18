@@ -132,7 +132,7 @@
             {% for q in questoes_validas %}
               <tr>
                 <td style="font-weight: 700;">{{ q.numero }}</td>
-                <td>{{ q.curso }}</td>
+                <td>{{ q.curso or 'Formação Geral' }}</td>
                 <td>{{ q.ano }}</td>
                 <td style="font-size: 0.8125rem;">{{ q.componente }}</td>
                 <td style="font-size: 0.8125rem;">{{ q.area }}</td>

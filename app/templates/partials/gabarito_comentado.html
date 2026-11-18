@@ -5,57 +5,61 @@
 
 <div class="gabarito-comentado-wrapper" id="gabarito-comentado-bloco">
   {% if modo_previa or (esta_publicado and tem_comentario_correta) %}
-    <section class="card" style="display: flex; flex-direction: column; gap: 14px; border: 1.5px solid var(--color-border); border-radius: 12px; padding: 20px; background: #ffffff;">
-      <h2 style="font-size: 1.25rem; margin: 0;">Gabarito comentado</h2>
+  <section class="card"
+    style="display: flex; flex-direction: column; gap: 14px; border: 1.5px solid var(--color-border); border-radius: 12px; padding: 20px; background: #ffffff;">
+    <h2 style="font-size: 1.25rem; margin: 0;">Gabarito comentado</h2>
 
-      <!-- Comentário da correta -->
-      <div id="previa-correta-wrapper" style="border-left: 4px solid var(--color-success-border); padding-left: 12px; margin-bottom: 4px;">
-        <p style="margin: 0; line-height: 1.55; font-size: 0.95rem;">
-          <strong id="previa-titulo-correta">
-            {% if questao.tipo == 'objetiva' %}
-              Por que a {{ questao.gabarito_oficial }} está correta:
-            {% else %}
-              Comentário sobre o padrão de resposta:
-            {% endif %}
-          </strong>
-          <span id="previa-correta-texto">{{ questao.comentario_correta or '' }}</span>
-        </p>
+    <!-- Comentário da correta -->
+    <div id="previa-correta-wrapper"
+      style="border-left: 4px solid var(--color-success-border); padding-left: 12px; margin-bottom: 4px;">
+      <p style="margin: 0; line-height: 1.55; font-size: 0.95rem;">
+        <strong id="previa-titulo-correta">
+          {% if questao.tipo == 'objetiva' %}
+          Por que a {{ questao.gabarito_oficial }} est&aacute; correta:
+          {% else %}
+          Coment&aacute;rio sobre o padr&atilde;o de resposta:
+          {% endif %}
+        </strong>
+        <span id="previa-correta-texto">{{ questao.comentario_correta or '' }}</span>
+      </p>
+    </div>
+
+    <!-- Comentários das alternativas incorretas (se houver e não vazios) -->
+    {% if questao.tipo == 'objetiva' %}
+    <div id="previa-erros-lista"
+      style="display: flex; flex-direction: column; gap: 10px; border-top: 1px dashed var(--color-border-subtle); padding-top: 12px;">
+      {% for alt in questao.alternativas %}
+      {% set tem_erro = (alt.comentario_erro and alt.comentario_erro.strip()) %}
+      <div id="previa-erro-alt-{{ alt.letra }}" class="previa-erro-item"
+        style="font-size: 0.9375rem; line-height: 1.5; {% if not tem_erro and not modo_previa %}display: none;{% endif %}">
+        <strong>Alternativa {{ alt.letra }}:</strong>
+        <span id="previa-erro-texto-{{ alt.letra }}">{{ alt.comentario_erro or '' }}</span>
       </div>
+      {% endfor %}
+    </div>
+    {% endif %}
 
-      <!-- Comentários das alternativas incorretas (se houver e não vazios) -->
-      {% if questao.tipo == 'objetiva' %}
-        <div id="previa-erros-lista" style="display: flex; flex-direction: column; gap: 10px; border-top: 1px dashed var(--color-border-subtle); padding-top: 12px;">
-          {% for alt in questao.alternativas %}
-            {% set tem_erro = (alt.comentario_erro and alt.comentario_erro.strip()) %}
-            <div id="previa-erro-alt-{{ alt.letra }}"
-                 class="previa-erro-item"
-                 style="font-size: 0.9375rem; line-height: 1.5; {% if not tem_erro and not modo_previa %}display: none;{% endif %}">
-              <strong>Alternativa {{ alt.letra }}:</strong>
-              <span id="previa-erro-texto-{{ alt.letra }}">{{ alt.comentario_erro or '' }}</span>
-            </div>
-          {% endfor %}
-        </div>
-      {% endif %}
-
-      <!-- Fonte / Observação -->
-      {% set tem_fonte = (questao.comentario_fonte and questao.comentario_fonte.strip()) %}
-      <div id="previa-fonte-wrapper" style="font-size: 0.8125rem; color: var(--color-text-muted); border-top: 1px solid var(--color-border-subtle); padding-top: 8px; {% if not tem_fonte and not modo_previa %}display: none;{% endif %}">
-        <strong>Fonte:</strong> <span id="previa-fonte-texto">{{ questao.comentario_fonte or '' }}</span>
-      </div>
-    </section>
+    <!-- Fonte / Observação -->
+    {% set tem_fonte = (questao.comentario_fonte and questao.comentario_fonte.strip()) %}
+    <div id="previa-fonte-wrapper"
+      style="font-size: 0.8125rem; color: var(--color-text-muted); border-top: 1px solid var(--color-border-subtle); padding-top: 8px; {% if not tem_fonte and not modo_previa %}display: none;{% endif %}">
+      <strong>Fonte:</strong> <span id="previa-fonte-texto">{{ questao.comentario_fonte or '' }}</span>
+    </div>
+  </section>
 
   {% else %}
-    <!-- Estado Comentário em Elaboração -->
-    <section class="card" style="display: flex; flex-direction: column; gap: 10px; border: 1.5px dashed var(--color-border-subtle); border-radius: 12px; padding: 20px; background: var(--color-bg-subtle);">
-      <h2 style="font-size: 1.15rem; margin: 0;">Gabarito comentado</h2>
-      <p class="text-muted" style="margin: 0; font-size: 0.95rem; line-height: 1.5;">
-        Comentário em elaboração. Em breve estará disponível.
-      </p>
-      <div>
-        <a href="{{ url_for('main.discussao_questao', id=questao.id) }}" style="font-size: 0.875rem; font-weight: 600;">
-          Fórum de discussão desta questão &rsaquo;
-        </a>
-      </div>
-    </section>
+  <!-- Estado Comentário em Elaboração -->
+  <section class="card"
+    style="display: flex; flex-direction: column; gap: 10px; border: 1.5px dashed var(--color-border-subtle); border-radius: 12px; padding: 20px; background: var(--color-bg-subtle);">
+    <h2 style="font-size: 1.15rem; margin: 0;">Gabarito comentado</h2>
+    <p class="text-muted" style="margin: 0; font-size: 0.95rem; line-height: 1.5;">
+      Coment&aacute;rio em elabora&ccedil;&atilde;o. Em breve estar&aacute; dispon&iacute;vel.
+    </p>
+    <div>
+      <a href="{{ url_for('main.discussao_questao', id=questao.id) }}" style="font-size: 0.875rem; font-weight: 600;">
+        F&oacute;rum de discuss&atilde;o desta quest&atilde;o &rsaquo;
+      </a>
+    </div>
+  </section>
   {% endif %}
 </div>

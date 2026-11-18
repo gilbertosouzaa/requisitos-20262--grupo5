@@ -64,7 +64,7 @@ class Questao(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     ano = db.Column(db.Integer, nullable=False)
-    curso_id = db.Column(db.Integer, db.ForeignKey('curso.id'), nullable=False)
+    curso_id = db.Column(db.Integer, db.ForeignKey('curso.id'), nullable=True)
     numero = db.Column(db.Integer, nullable=False)
     componente = db.Column(db.String(50), nullable=False)  # 'formacao_geral' | 'especifico'
     area = db.Column(db.String(100), nullable=False)
@@ -104,7 +104,8 @@ class Questao(db.Model):
         cascade='all, delete-orphan'
     )
 
-    # RN02: toda questão tem ano, curso, componente, área, tipo e gabarito oficial.
+    # RN02: toda questão tem ano, componente, área, tipo e gabarito oficial.
+    # Curso é obrigatório somente para o Componente Específico (FG é comum a todos os cursos).
     @validates('ano')
     def validate_ano(self, key, value):
         if not value or not isinstance(value, int) or value < 2000:
@@ -113,8 +114,8 @@ class Questao(db.Model):
 
     @validates('curso_id')
     def validate_curso_id(self, key, value):
-        if not value:
-            raise ValueError("O curso da questão é obrigatório.")
+        if getattr(self, 'componente', None) == 'especifico' and not value:
+            raise ValueError("O curso da questão é obrigatório para o Componente Específico.")
         return value
 
     @validates('componente')

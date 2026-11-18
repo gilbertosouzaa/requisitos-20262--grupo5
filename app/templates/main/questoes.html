@@ -24,8 +24,9 @@
         <div class="form-group" style="margin-bottom: 14px;">
           <label class="form-label" for="curso" style="font-size: 0.875rem;">Curso</label>
           <select class="form-control" id="curso" name="curso" style="min-height: 40px; font-size: 0.9rem;">
+            <option value="todos" {% if not filtros.curso_id or filtros.curso_id == 'todos' %}selected{% endif %}>Todos os cursos</option>
             {% for c in cursos %}
-              <option value="{{ c.id }}" {% if c.id == filtros.curso_id %}selected{% endif %}>
+              <option value="{{ c.id }}" {% if filtros.curso_id and c.id|string == filtros.curso_id|string %}selected{% endif %}>
                 {{ c.nome }}
               </option>
             {% endfor %}
@@ -52,7 +53,7 @@
           </label>
           <label class="filter-opt">
             <input type="radio" name="componente" value="formacao_geral" {% if filtros.componente == 'formacao_geral' %}checked{% endif %}>
-            <span>Forma&ccedil;&atilde;o Geral</span>
+            <span>Formação Geral</span>
           </label>
           <label class="filter-opt">
             <input type="radio" name="componente" value="especifico" {% if filtros.componente == 'especifico' %}checked{% endif %}>
@@ -153,7 +154,7 @@
               <div class="question-item-header">
                 <span class="question-num">Quest&atilde;o {{ q.numero }}</span>
                 <span class="tag">{{ q.ano }}</span>
-                <span class="tag">{% if q.componente == 'formacao_geral' %}Forma&ccedil;&atilde;o Geral{% else %}Espec&iacute;fico{% endif %}</span>
+                <span class="tag">{% if q.componente == 'formacao_geral' %}Formação Geral{% else %}Específico{% endif %}</span>
                 <span class="tag">{{ q.area }}</span>
                 <span class="tag">{% if q.tipo == 'objetiva' %}Objetiva{% else %}Discursiva{% endif %}</span>
 
@@ -208,15 +209,30 @@
           </nav>
         {% endif %}
       {% else %}
-        <!-- Estado Vazio (US04) -->
+        <!-- Estado Vazio (US04 / Requisito 4) -->
         <div class="card" style="text-align: center; padding: 48px 24px; margin-top: 8px;">
-          <h2 style="font-size: 1.35rem; margin-bottom: 8px;">Nenhuma quest&atilde;o encontrada</h2>
-          <p class="text-muted" style="margin-bottom: 20px;">
-            Nenhuma quest&atilde;o atende a todos os crit&eacute;rios de filtros selecionados. Tente remover alguns filtros ou buscar por outro termo.
-          </p>
-          <a class="btn btn-secondary" href="{{ url_for('main.questoes') }}">
-            Limpar todos os filtros
-          </a>
+          {% if sem_questoes_especificas and curso_selecionado %}
+            <h2 style="font-size: 1.35rem; margin-bottom: 8px;">Nenhuma questão encontrada</h2>
+            <p class="text-muted" style="margin-bottom: 20px; max-width: 540px; margin-left: auto; margin-right: auto; line-height: 1.55;">
+              Ainda não há questões do Componente Específico de {{ curso_selecionado.nome }}. Você pode estudar as questões de Formação Geral, que valem para todos os cursos.
+            </p>
+            <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+              <a class="btn btn-primary" href="{{ url_for('main.questoes', curso=curso_selecionado.id, componente='formacao_geral') }}">
+                Ver Formação Geral
+              </a>
+              <a class="btn btn-secondary" href="{{ url_for('main.questoes', curso='todos') }}">
+                Ver todos os cursos
+              </a>
+            </div>
+          {% else %}
+            <h2 style="font-size: 1.35rem; margin-bottom: 8px;">Nenhuma questão encontrada</h2>
+            <p class="text-muted" style="margin-bottom: 20px;">
+              Nenhuma questão atende a todos os critérios de filtros selecionados. Tente remover alguns filtros ou buscar por outro termo.
+            </p>
+            <a class="btn btn-secondary" href="{{ url_for('main.questoes') }}">
+              Limpar todos os filtros
+            </a>
+          {% endif %}
         </div>
       {% endif %}
     </section>

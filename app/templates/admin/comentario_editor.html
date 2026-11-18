@@ -22,7 +22,7 @@
           Gabarito comentado da Questão {{ questao.numero }} · ENADE {{ questao.ano }}
         </h1>
         <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 0.875rem; color: var(--color-text-muted);">
-          <span><strong>Curso:</strong> {{ questao.curso.nome }}</span>
+          <span><strong>Curso:</strong> {{ questao.curso.nome if questao.curso else 'Formação Geral (Comum a todos os cursos)' }}</span>
           <span>&middot;</span>
           <span><strong>Componente:</strong> {% if questao.componente == 'formacao_geral' %}Formação Geral{% else %}Específico{% endif %}</span>
           <span>&middot;</span>
