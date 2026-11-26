@@ -580,3 +580,200 @@ def criar_admin_command(nome, email):
 
     link = f"/redefinir-senha/{token_str}"
     click.echo(f"Link para definir a senha (válido por 48h): {link}")
+
+
+def seed_historico_usuario(email: str) -> bool:
+    """Popula ~7 semanas de histórico de estudo e 5 simulados finalizados para demonstração (idempotente)."""
+    from app.models import Simulado, SimuladoQuestao, SimuladoResposta, RespostaEstudo
+
+    email_norm = email.strip().lower()
+    usuario = Usuario.query.filter_by(email=email_norm).first()
+    if not usuario:
+        click.echo(f"Usuário '{email_norm}' não encontrado.")
+        return False
+
+    # Idempotência: verifica se já existe histórico suficiente (respostas retroativas ou simulados finalizados)
+    agora = datetime.now(timezone.utc)
+    limite_retro = agora - timedelta(days=7)
+    respostas_retro = RespostaEstudo.query.filter(
+        RespostaEstudo.usuario_id == usuario.id,
+        RespostaEstudo.respondida_em < limite_retro
+    ).count()
+    simulados_fin = Simulado.query.filter(
+        Simulado.usuario_id == usuario.id,
+        Simulado.finalizado_em != None  # noqa: E711
+    ).count()
+
+    if respostas_retro > 0 or simulados_fin >= 5:
+        click.echo(f"Histórico de demonstração já existe para '{email_norm}'. Nada foi duplicado.")
+        return False
+
+    # Busca questões objetivas válidas (não anuladas) do curso do usuário + Formação Geral
+    questoes_obj = Questao.query.filter(
+        Questao.tipo == "objetiva",
+        Questao.anulada == False,  # noqa: E712
+        db.or_(Questao.componente == "formacao_geral", Questao.curso_id == usuario.curso_id)
+    ).order_by(Questao.ano.desc(), Questao.numero.asc()).all()
+
+    if not questoes_obj:
+        click.echo("Nenhuma questão objetiva disponível. Execute 'flask seed' primeiro.")
+        return False
+
+    por_area = {}
+    for q in questoes_obj:
+        por_area.setdefault(q.area, []).append(q)
+
+    # Seleciona até 3 áreas com melhora gradual e 1 área com queda
+    areas_disponiveis = list(por_area.keys())
+    areas_melhora = [a for a in ["Redes", "Banco de Dados", "Algoritmos"] if a in por_area]
+    if len(areas_melhora) < 2:
+        areas_melhora = areas_disponiveis[:2]
+    area_queda = "Estruturas de Dados" if "Estruturas de Dados" in por_area else (
+        next((a for a in areas_disponiveis if a not in areas_melhora), None)
+    )
+
+    # Semanas: 7, 6, 5, 4 (anteriores) e 2, 1, 0 (últimas 4, deixando semana 3 sem atividade para mostrar interrupção no gráfico)
+    semanas_offsets = [7, 6, 5, 4, 2, 1, 0]
+
+    def _errada(gabarito: str) -> str:
+        for letra in ("A", "B", "C", "D", "E"):
+            if letra != gabarito:
+                return letra
+        return "A"
+
+    # Gera respostas no modo estudo (~7 semanas)
+    for w_off in semanas_offsets:
+        eh_recente = (w_off <= 2)
+        base_dt = agora - timedelta(weeks=w_off, days=1)
+
+        # Áreas com melhora: ~33% nas 4 anteriores -> ~83% nas últimas 4 (3 respostas por semana = 12 no ant, 9 no rec)
+        for area_nome in areas_melhora:
+            qs = por_area[area_nome]
+            # 2 a 3 respostas por semana garantindo >= 5 em cada período
+            qtd_sem = 3
+            for idx in range(qtd_sem):
+                q = qs[(w_off + idx) % len(qs)]
+                if not eh_recente:
+                    acertar = (idx == 0 and w_off <= 5)
+                else:
+                    acertar = (idx < 2 or w_off == 0)
+                marcada = q.gabarito_oficial if acertar else _errada(q.gabarito_oficial)
+                db.session.add(RespostaEstudo(
+                    usuario_id=usuario.id,
+                    questao_id=q.id,
+                    alternativa_marcada=marcada,
+                    correta=acertar,
+                    respondida_em=base_dt + timedelta(hours=idx * 2)
+                ))
+
+        # Área com queda: ~83% nas 4 anteriores -> ~33% nas últimas 4
+        if area_queda:
+            qs_q = por_area[area_queda]
+            for idx in range(3):
+                q = qs_q[(w_off + idx) % len(qs_q)]
+                if not eh_recente:
+                    acertar = (idx < 2 or w_off == 7)
+                else:
+                    acertar = (idx == 0 and w_off == 2)
+                marcada = q.gabarito_oficial if acertar else _errada(q.gabarito_oficial)
+                db.session.add(RespostaEstudo(
+                    usuario_id=usuario.id,
+                    questao_id=q.id,
+                    alternativa_marcada=marcada,
+                    correta=acertar,
+                    respondida_em=base_dt + timedelta(hours=8 + idx)
+                ))
+
+    # Gera 4 simulados parciais e 1 completo finalizados em semanas diferentes
+    # Completo (5 semanas atrás, ~60% de acerto)
+    qs_2023 = Questao.query.filter(
+        Questao.ano == 2023,
+        Questao.anulada == False,  # noqa: E712
+        db.or_(Questao.componente == "formacao_geral", Questao.curso_id == usuario.curso_id)
+    ).order_by(Questao.numero.asc()).all()
+
+    if qs_2023:
+        fin_comp = agora - timedelta(weeks=5, days=2)
+        ini_comp = fin_comp - timedelta(hours=3, minutes=15)
+        sim_comp = Simulado(
+            usuario_id=usuario.id,
+            tipo="completo",
+            edicao_ano=2023,
+            iniciado_em=ini_comp,
+            duracao_segundos=14400,
+            finalizado_em=fin_comp,
+            finalizado_por="entrega"
+        )
+        db.session.add(sim_comp)
+        db.session.flush()
+        for ordem, q in enumerate(qs_2023, start=1):
+            db.session.add(SimuladoQuestao(simulado_id=sim_comp.id, questao_id=q.id, ordem=ordem))
+            if q.tipo == "objetiva":
+                acertar = (ordem % 5 != 0 and ordem % 3 != 0)  # ~53-60%
+                marcada = q.gabarito_oficial if acertar else _errada(q.gabarito_oficial)
+                db.session.add(SimuladoResposta(
+                    simulado_id=sim_comp.id,
+                    questao_id=q.id,
+                    alternativa_marcada=marcada,
+                    atualizada_em=fin_comp - timedelta(minutes=10)
+                ))
+
+    # 4 simulados parciais em semanas diferentes (6, 4, 2, 1 semanas atrás) com evolução 40% -> 50% -> 70% -> 80%
+    parciais_config = [
+        (6, "Redes", 4, "entrega"),
+        (4, "Banco de Dados", 5, "entrega"),
+        (2, "Algoritmos", 7, "tempo"),
+        (1, "Redes", 8, "entrega"),
+    ]
+    for w_off, area_alvo, num_acertos, motivo in parciais_config:
+        qs_area = por_area.get(area_alvo) or questoes_obj
+        qs_sel = (qs_area * 3)[:10]  # 10 questões
+        if not qs_sel:
+            continue
+        fin_p = agora - timedelta(weeks=w_off, days=3)
+        gasto_min = 60 if motivo == "tempo" else 38
+        ini_p = fin_p - timedelta(minutes=gasto_min)
+        sim_p = Simulado(
+            usuario_id=usuario.id,
+            tipo="parcial",
+            componente="especifico",
+            area=area_alvo,
+            iniciado_em=ini_p,
+            duracao_segundos=3600,
+            finalizado_em=fin_p,
+            finalizado_por=motivo
+        )
+        db.session.add(sim_p)
+        db.session.flush()
+        # Evita questao_id duplicado em SimuladoQuestao/SimuladoResposta se área tiver < 10 questões
+        vistas = set()
+        ordem = 1
+        for q in qs_area:
+            if q.id in vistas:
+                continue
+            vistas.add(q.id)
+            db.session.add(SimuladoQuestao(simulado_id=sim_p.id, questao_id=q.id, ordem=ordem))
+            acertar = (ordem <= max(1, round(num_acertos * len(qs_area) / 10)))
+            marcada = q.gabarito_oficial if acertar else _errada(q.gabarito_oficial)
+            db.session.add(SimuladoResposta(
+                simulado_id=sim_p.id,
+                questao_id=q.id,
+                alternativa_marcada=marcada,
+                atualizada_em=fin_p - timedelta(minutes=2)
+            ))
+            ordem += 1
+            if ordem > 10:
+                break
+
+    db.session.commit()
+    click.echo(f"Histórico de demonstração criado com sucesso para '{email_norm}'.")
+    return True
+
+
+@click.command("seed-historico")
+@click.option("--email", default="ana@teste.com", help="E-mail do estudante para popular o histórico.")
+@with_appcontext
+def seed_historico_command(email):
+    """Popula ~7 semanas de respostas e 5 simulados finalizados para demonstração."""
+    db.create_all()
+    seed_historico_usuario(email)

@@ -1,0 +1,104 @@
+{% if evolucao.exibir_grafico %}
+  <div class="evolucao-chart-wrap">
+    <svg viewBox="0 0 {{ evolucao.svg.width }} {{ evolucao.svg.height }}"
+         role="img"
+         aria-label="{{ evolucao.svg.aria_label }}"
+         class="evolucao-svg">
+      <!-- Linhas de grade horizontais (0, 25, 50, 75, 100%) -->
+      {% for g in evolucao.svg.grid_lines %}
+        <line x1="{{ evolucao.svg.pad_left }}"
+              y1="{{ g.y }}"
+              x2="{{ evolucao.svg.x_end }}"
+              y2="{{ g.y }}"
+              class="{% if g.pct == 0 %}evolucao-axis-line{% else %}evolucao-grid-line{% endif %}" />
+        <text x="{{ evolucao.svg.pad_left - 8 }}"
+              y="{{ g.y + 4 }}"
+              text-anchor="end"
+              class="evolucao-axis-text">{{ g.pct }}%</text>
+      {% endfor %}
+
+      <!-- Rótulos do eixo X (início de cada semana) -->
+      {% for s in evolucao.semanas %}
+        <text x="{{ s.x }}"
+              y="{{ evolucao.svg.baseline_y + 22 }}"
+              text-anchor="middle"
+              class="evolucao-axis-text {% if loop.index0 % 2 == 1 %}evolucao-x-alt{% endif %}">{{ s.label }}</text>
+      {% endfor %}
+
+      <!-- Segmentos de linha (interrompidos em semanas sem atividade) -->
+      {% for seg in evolucao.svg.segmentos %}
+        <polyline points="{{ seg }}" fill="none" class="evolucao-line" />
+      {% endfor %}
+
+      <!-- Pontos e percentuais acima de cada semana com atividade -->
+      {% for p in evolucao.svg.pontos %}
+        <circle cx="{{ p.x }}" cy="{{ p.y }}" r="5" class="evolucao-point">
+          <title>Semana de {{ p.semana_label }}: {{ p.percentual }}% ({{ p.acertos }}/{{ p.respondidas }})</title>
+        </circle>
+        <text x="{{ p.x }}"
+              y="{{ p.label_y }}"
+              text-anchor="middle"
+              class="evolucao-value-text">{{ p.percentual }}%</text>
+      {% endfor %}
+    </svg>
+  </div>
+
+  <!-- Comparação das últimas 4 semanas vs 4 anteriores -->
+  <div class="evolucao-resumo-periodo">
+    {% if evolucao.ultimas_4_pct is not none and evolucao.anteriores_4_pct is not none %}
+      <span>
+        Últimas 4 semanas: <strong>{{ evolucao.ultimas_4_pct }}%</strong>
+        &middot;
+        4 semanas anteriores: <strong>{{ evolucao.anteriores_4_pct }}%</strong>
+      </span>
+      {% if evolucao.variacao_pontos > 0 %}
+        <span class="trend-badge trend-up">(&#9650; +{{ evolucao.variacao_pontos }} pontos)</span>
+      {% elif evolucao.variacao_pontos < 0 %}
+        <span class="trend-badge trend-down">(&#9660; {{ evolucao.variacao_pontos }} pontos)</span>
+      {% else %}
+        <span class="trend-badge trend-flat">(&mdash; 0 pontos)</span>
+      {% endif %}
+    {% elif evolucao.ultimas_4_pct is not none %}
+      <span>Últimas 4 semanas: <strong>{{ evolucao.ultimas_4_pct }}%</strong> &middot; 4 semanas anteriores: sem atividade</span>
+    {% elif evolucao.anteriores_4_pct is not none %}
+      <span>Últimas 4 semanas: sem atividade &middot; 4 semanas anteriores: <strong>{{ evolucao.anteriores_4_pct }}%</strong></span>
+    {% endif %}
+  </div>
+
+  <!-- Tabela acessível com os dados do gráfico -->
+  <details class="evolucao-details">
+    <summary>Ver dados do gráfico</summary>
+    <div class="custom-table-container" style="margin-top: 12px;">
+      <table class="custom-table" style="min-width: 420px;">
+        <thead>
+          <tr>
+            <th scope="col">Semana</th>
+            <th scope="col">Respondidas</th>
+            <th scope="col">Acertos</th>
+            <th scope="col">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in evolucao.semanas %}
+            <tr>
+              <td>{{ s.label }} <span class="text-muted" style="font-size: 0.8125rem;">({{ s.periodo_completo }})</span></td>
+              {% if s.tem_atividade %}
+                <td>{{ s.respondidas }}</td>
+                <td>{{ s.acertos }}</td>
+                <td><strong>{{ s.percentual }}%</strong></td>
+              {% else %}
+                <td colspan="3" class="text-muted">sem atividade</td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{% else %}
+  <div class="evolucao-empty">
+    <p class="text-muted" style="margin: 0; font-size: 0.95rem;">
+      Continue estudando: o gráfico aparece a partir de 2 semanas com respostas.
+    </p>
+  </div>
+{% endif %}

@@ -3,7 +3,7 @@ from flask import Flask
 from config import Config
 from app.extensions import db, bcrypt, login_manager, csrf
 from app.models import Usuario
-from app.seed import init_db_command, seed_command, criar_admin_command
+from app.seed import init_db_command, seed_command, criar_admin_command, seed_historico_command
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -50,5 +50,6 @@ def create_app(config_class=Config):
     app.cli.add_command(init_db_command)
     app.cli.add_command(seed_command)
     app.cli.add_command(criar_admin_command)
+    app.cli.add_command(seed_historico_command)
 
     return app

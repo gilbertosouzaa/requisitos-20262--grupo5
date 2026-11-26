@@ -20,7 +20,7 @@
 
   <!-- Faixa de Simulado em Andamento (Só aparece se houver simulado ativo) -->
   {% if simulado_em_andamento %}
-    <section aria-label="Simulado em andamento" class="result-banner" style="background-color: var(--color-bg-subtle);">
+    <section aria-label="Simulado em andamento" class="result-banner inicio-simulado-banner" style="background-color: var(--color-bg-subtle);">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="12" cy="13" r="8"></circle>
         <path d="M12 9v4l2.5 2.5M9 2h6"></path>
@@ -31,12 +31,12 @@
           {{ simulado_em_andamento.detalhes }}
         </div>
       </div>
-      <a class="btn btn-primary" href="{{ simulado_em_andamento.url }}">Continuar simulado</a>
+      <a class="btn btn-primary btn-continuar-simulado" href="{{ simulado_em_andamento.url }}">Continuar simulado</a>
     </section>
   {% endif %}
 
   <!-- 3 Cards Principais -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+  <div class="inicio-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
     <!-- Card 1: Fazer um simulado -->
     <section class="card" style="display: flex; flex-direction: column; gap: 12px;">
       <div class="card-icon" aria-hidden="true">
@@ -49,9 +49,17 @@
       <p class="text-muted" style="margin: 0; flex: 1; line-height: 1.5;">
         Prova completa (40 quest&otilde;es, 4h) ou parcial, escolhendo componente e &aacute;rea de conhecimento.
       </p>
-      <a class="btn btn-primary" href="{{ url_for('main.novo_simulado') }}" style="align-self: flex-start; margin-top: 8px;">
-        Novo simulado
-      </a>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; align-items: center;">
+        <a class="btn btn-primary" href="{{ url_for('main.novo_simulado') }}">
+          Novo simulado
+        </a>
+        <form method="POST" action="{{ url_for('main.simulado_rapido') }}" style="margin: 0;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-secondary">
+            Simulado r&aacute;pido &middot; 10 quest&otilde;es
+          </button>
+        </form>
+      </div>
     </section>
 
     <!-- Card 2: Estudar questões -->
@@ -104,6 +112,12 @@
                 <strong style="text-align: right;">{{ item.percentual }}%</strong>
               </div>
             {% endfor %}
+          </div>
+        {% endif %}
+        {% if tendencia %}
+          <div class="inicio-tendencia" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid #e5e5e5; font-size: 0.875rem;">
+            <span class="trend-badge {{ tendencia.classe }}">{{ tendencia.texto }}</span>
+            <a href="{{ url_for('main.desempenho') }}#evolucao" style="font-weight: 600;">Ver evolução</a>
           </div>
         {% endif %}
       {% else %}

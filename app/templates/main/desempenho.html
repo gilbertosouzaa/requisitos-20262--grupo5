@@ -70,16 +70,16 @@
 
       <div style="display: flex; flex-direction: column; gap: 14px;">
         {% for a in areas %}
-          <div style="display: grid; grid-template-columns: minmax(140px, 200px) 1fr 60px minmax(120px, 160px) 120px; gap: 14px; align-items: center; font-size: 0.9375rem;">
-            <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ a.nome }}">
+          <div class="desempenho-area-row">
+            <span class="area-nome" title="{{ a.nome }}">
               {{ a.nome }}
             </span>
-            <div class="progress-bar-wrap" style="height: 18px;" role="progressbar" aria-label="{{ a.label }}" aria-valuenow="{{ a.pct }}" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar-wrap area-barra" style="height: 18px;" role="progressbar" aria-label="{{ a.label }}" aria-valuenow="{{ a.pct }}" aria-valuemin="0" aria-valuemax="100">
               <div class="progress-bar-fill" style="width: {{ a.pct }}%;"></div>
             </div>
-            <strong>{{ a.pct }}%</strong>
-            <span class="text-muted" style="font-size: 0.875rem;">{{ a.qtd }}</span>
-            <a href="{{ url_for('main.questoes', area=a.nome) }}" style="font-size: 0.875rem; font-weight: 600; text-align: right;">
+            <strong class="area-pct">{{ a.pct }}%</strong>
+            <span class="text-muted area-qtd" style="font-size: 0.875rem;">{{ a.qtd }}</span>
+            <a class="area-link" href="{{ url_for('main.questoes', area=a.nome) }}" style="font-size: 0.875rem; font-weight: 600; text-align: right;">
               Estudar área &rsaquo;
             </a>
           </div>
@@ -87,18 +87,167 @@
       </div>
     </section>
 
-    <!-- Histórico e Próximos Passos -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px;">
-      <!-- Evolução ao longo do tempo (RF16 P2 Placeholder) -->
-      <section style="border: 1.5px dashed var(--color-border-subtle); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 12px; background: #ffffff;">
-        <h2 style="margin: 0; font-size: 1.2rem;">Evolu&ccedil;&atilde;o ao longo do tempo</h2>
-        <div class="image-placeholder-box" style="height: 160px; display: flex; align-items: center; justify-content: center; border: 1.5px dashed var(--color-border-subtle); background: var(--color-bg-subtle); border-radius: 8px;">
-          <span class="text-muted">[ gr&aacute;fico de linha &middot; % de acerto por simulado ]</span>
+    <!-- Histórico de Evolução (RF16 / US13) -->
+    <div id="evolucao" style="display: flex; flex-direction: column; gap: 24px;">
+
+      <!-- 1. Card "Evolução do seu acerto" -->
+      <section class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
+          <div>
+            <h2 style="margin: 0; font-size: 1.35rem;">Evolução do seu acerto</h2>
+            <p class="text-muted" style="margin: 2px 0 0; font-size: 0.875rem;">
+              Percentual semanal nas últimas 8 semanas (segunda a domingo)
+            </p>
+          </div>
+
+          <form id="form-evolucao-area" method="GET" action="{{ url_for('main.desempenho') }}#evolucao" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+            <input type="hidden" name="origem" value="{{ origem }}">
+            <input type="hidden" name="componente" value="{{ componente }}">
+            <label for="evolucao_area" class="text-muted" style="font-size: 0.875rem;">Mostrar:</label>
+            <select id="evolucao_area" name="evolucao_area" class="form-input" style="min-height: 40px; padding: 0 10px; width: auto; font-size: 0.875rem;">
+              <option value="geral" {% if evolucao_area == 'geral' %}selected{% endif %}>Geral</option>
+              {% for area_nome in evolucao.areas_disponiveis %}
+                <option value="{{ area_nome }}" {% if evolucao_area == area_nome %}selected{% endif %}>{{ area_nome }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" id="btn-atualizar-evolucao" class="btn btn-secondary" style="min-height: 44px; padding: 0 14px; font-size: 0.875rem;">
+              Atualizar
+            </button>
+          </form>
         </div>
-        <span class="text-muted" style="font-size: 0.8125rem;">
-          Hist&oacute;rico &middot; US13 / RF16 &middot; prioridade P2, fica para a pr&oacute;xima rodada
-        </span>
+
+        <div id="evolucao-conteudo">
+          {% include 'partials/desempenho_evolucao.html' %}
+        </div>
       </section>
+
+      <!-- 2. Card "O que mudou nas últimas 4 semanas" -->
+      <section class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+        <div>
+          <h2 style="margin: 0; font-size: 1.35rem;">O que mudou nas últimas 4 semanas</h2>
+          <p class="text-muted" style="margin: 2px 0 0; font-size: 0.875rem;">
+            Comparação por área em relação às 4 semanas anteriores (mínimo de 5 objetivas por período)
+          </p>
+        </div>
+
+        {% if mudancas.tem_dados %}
+          {% if mudancas.melhorou or mudancas.atencao %}
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+              <div>
+                <h3 style="margin: 0 0 10px; font-size: 1rem;">Melhorou</h3>
+                {% if mudancas.melhorou %}
+                  <ul class="mudancas-lista">
+                    {% for item in mudancas.melhorou %}
+                      <li class="mudancas-item">
+                        <span>
+                          <strong>{{ item.area }}:</strong> {{ item.pct_antes }}% &rarr; {{ item.pct_agora }}%
+                          <span class="trend-badge trend-up">(&#9650; +{{ item.diff }})</span>
+                        </span>
+                        <a href="{{ url_for('main.questoes', area=item.area) }}" style="font-size: 0.875rem; font-weight: 600; white-space: nowrap;">
+                          Estudar área &rsaquo;
+                        </a>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  <p class="text-muted" style="margin: 0; font-size: 0.9rem;">Nenhuma área com alta neste período.</p>
+                {% endif %}
+              </div>
+
+              <div>
+                <h3 style="margin: 0 0 10px; font-size: 1rem;">Precisa de atenção</h3>
+                {% if mudancas.atencao %}
+                  <ul class="mudancas-lista">
+                    {% for item in mudancas.atencao %}
+                      <li class="mudancas-item">
+                        <span>
+                          <strong>{{ item.area }}:</strong> {{ item.pct_antes }}% &rarr; {{ item.pct_agora }}%
+                          <span class="trend-badge trend-down">(&#9660; {{ item.diff }})</span>
+                        </span>
+                        <a href="{{ url_for('main.questoes', area=item.area) }}" style="font-size: 0.875rem; font-weight: 600; white-space: nowrap;">
+                          Estudar área &rsaquo;
+                        </a>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  <p class="text-muted" style="margin: 0; font-size: 0.9rem;">Nenhuma área com queda neste período.</p>
+                {% endif %}
+              </div>
+            </div>
+          {% else %}
+            <p class="text-muted" style="margin: 0; font-size: 0.95rem;">
+              Desempenho estável nas áreas com dados suficientes neste período.
+            </p>
+          {% endif %}
+        {% else %}
+          <p class="text-muted" style="margin: 0; font-size: 0.95rem;">
+            Ainda não há dados suficientes para comparar. Responda pelo menos 5 questões por área em semanas diferentes.
+          </p>
+        {% endif %}
+      </section>
+
+      <!-- 3. Card "Seus últimos simulados" -->
+      <section class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 12px;">
+          <h2 style="margin: 0; font-size: 1.35rem;">Seus últimos simulados</h2>
+          <a href="{{ url_for('main.historico_simulados') }}" style="font-size: 0.9rem; font-weight: 600;">
+            Ver histórico completo &rsaquo;
+          </a>
+        </div>
+
+        {% if ultimos_simulados %}
+          <div class="custom-table-container responsive-cards-container">
+            <table class="custom-table responsive-cards">
+              <thead>
+                <tr>
+                  <th scope="col">Data</th>
+                  <th scope="col">Tipo</th>
+                  <th scope="col">% de acerto</th>
+                  <th scope="col">Variação</th>
+                  <th scope="col">Tempo utilizado</th>
+                  <th scope="col" style="text-align: right;">Resultado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in ultimos_simulados %}
+                  <tr>
+                    <td data-label="Data">{{ s.data }}</td>
+                    <td data-label="Tipo"><strong>{{ s.tipo_label }}</strong></td>
+                    <td data-label="Acerto"><strong>{{ s.percentual }}%</strong></td>
+                    <td data-label="Variação">
+                      {% if s.variacao is none %}
+                        <span class="text-muted">&mdash;</span>
+                      {% elif s.variacao > 0 %}
+                        <span class="trend-badge trend-up">&#9650; +{{ s.variacao }}</span>
+                      {% elif s.variacao < 0 %}
+                        <span class="trend-badge trend-down">&#9660; {{ s.variacao }}</span>
+                      {% else %}
+                        <span class="trend-badge trend-flat">0</span>
+                      {% endif %}
+                    </td>
+                    <td data-label="Tempo">{{ s.tempo_utilizado }}</td>
+                    <td class="td-action" style="text-align: right;">
+                      <a href="{{ s.url }}" style="font-weight: 600;">Ver resultado &rsaquo;</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <p class="text-muted" style="margin: 0; font-size: 0.8125rem;">
+            Variação em relação ao simulado anterior do mesmo tipo e área.
+          </p>
+        {% else %}
+          <div style="display: flex; flex-direction: column; gap: 12px; align-items: flex-start;">
+            <p class="text-muted" style="margin: 0; font-size: 0.95rem;">
+              Você ainda não concluiu nenhum simulado.
+            </p>
+            <a class="btn btn-primary" href="{{ url_for('main.novo_simulado') }}">Fazer um simulado</a>
+          </div>
+        {% endif %}
+      </section>
+
     </div>
 
   {% else %}

@@ -7,11 +7,14 @@
 {% block content %}
 <main class="container" style="padding-top: 32px; padding-bottom: 48px; display: flex; flex-direction: column; gap: 24px;">
   <!-- Cabeçalho da página -->
-  <div>
-    <h1 style="margin: 0; font-size: clamp(1.8rem, 3.5vw, 2.2rem);">Novo simulado</h1>
-    <p class="text-muted" style="margin: 4px 0 0; font-size: 1.05rem;">
-      Escolha o tipo de simulado. O gabarito s&oacute; aparece depois da entrega.
-    </p>
+  <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px;">
+    <div>
+      <h1 style="margin: 0; font-size: clamp(1.8rem, 3.5vw, 2.2rem);">Novo simulado</h1>
+      <p class="text-muted" style="margin: 4px 0 0; font-size: 1.05rem;">
+        Escolha o tipo de simulado. O gabarito s&oacute; aparece depois da entrega.
+      </p>
+    </div>
+    <a class="btn btn-secondary" href="{{ url_for('main.historico_simulados') }}">Ver histórico</a>
   </div>
 
   <!-- Exibição de mensagens flash de validação -->

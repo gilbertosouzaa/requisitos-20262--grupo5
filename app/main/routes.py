@@ -6,17 +6,19 @@ from app.main import main_bp
 from app.auth import login_required
 from app.extensions import db
 from app.models import Questao, Curso, Alternativa, RespostaEstudo, Simulado, SimuladoQuestao, SimuladoResposta, utc_now
+from app.services.desempenho import (
+    calcular_resumo_geral,
+    calcular_evolucao_semanal,
+    calcular_mudancas_4_semanas,
+    obter_historico_simulados,
+    obter_simulado_em_andamento,
+    obter_tendencia_inicio,
+    formatar_tempo_legivel,
+)
 
 def formatar_duracao(segundos: int) -> str:
-    """Formata duração em segundos para string amigável: e.g. 1h46 ou 45min."""
-    if segundos <= 0:
-        return "0min"
-    horas = segundos // 3600
-    resto = segundos % 3600
-    minutos = resto // 60
-    if horas > 0:
-        return f"{horas}h{minutos:02d}"
-    return f"{minutos}min"
+    """Formata duração em segundos usando o padrão legível unificado."""
+    return formatar_tempo_legivel(segundos)
 
 
 def obter_respostas_mais_recentes(usuario_id):
@@ -157,127 +159,32 @@ def landing():
 @login_required
 def inicio():
     """T05 completo - Início do estudante logado (RNF01, RN08, RN03, RN05)."""
-    # 1. Simulado em andamento
-    simulado_ativo = Simulado.query.filter_by(
-        usuario_id=current_user.id,
-        finalizado_em=None
-    ).first()
-
-    simulado_em_andamento = None
-    if simulado_ativo:
-        if simulado_ativo.is_expirado():
-            simulado_ativo.finalizar(motivo='tempo')
-            db.session.commit()
-        else:
-            restante_s = simulado_ativo.get_tempo_restante_segundos()
-            restante_fmt = formatar_duracao(restante_s)
-            if simulado_ativo.tipo == 'completo':
-                tipo_txt = f"Prova completa ENADE {simulado_ativo.edicao_ano}"
-            else:
-                tipo_txt = "Simulado parcial"
-            simulado_em_andamento = {
-                'id': simulado_ativo.id,
-                'detalhes': f"{tipo_txt} · Tempo restante: {restante_fmt}",
-                'url': url_for('main.ver_simulado', id=simulado_ativo.id)
-            }
-
-    # 2. Desempenho geral agregado (estudo + simulados finalizados) (RN08 e RN03)
-    respostas_estudo = obter_respostas_mais_recentes(current_user.id)
-    validas_estudo = [
-        r for r in respostas_estudo.values()
-        if r.questao.tipo == 'objetiva' and not r.questao.anulada
-    ]
-
-    simulados_finalizados = Simulado.query.filter_by(
-        usuario_id=current_user.id
-    ).filter(Simulado.finalizado_em != None).all()
-
-    areas_stats = {}
-    total_respondidas = 0
-    total_acertos = 0
-
-    # Estudo
-    for r in validas_estudo:
-        area = r.questao.area
-        if area not in areas_stats:
-            areas_stats[area] = {'total': 0, 'acertos': 0}
-        areas_stats[area]['total'] += 1
-        total_respondidas += 1
-        if r.correta is True:
-            areas_stats[area]['acertos'] += 1
-            total_acertos += 1
-
-    # Simulados
-    for sim in simulados_finalizados:
-        for resp in sim.respostas:
-            q = resp.questao
-            if q.tipo == 'objetiva' and not q.anulada and resp.alternativa_marcada:
-                area = q.area
-                if area not in areas_stats:
-                    areas_stats[area] = {'total': 0, 'acertos': 0}
-                areas_stats[area]['total'] += 1
-                total_respondidas += 1
-                if resp.alternativa_marcada == q.gabarito_oficial:
-                    areas_stats[area]['acertos'] += 1
-                    total_acertos += 1
-
-    tem_desempenho = total_respondidas > 0
+    simulado_em_andamento = obter_simulado_em_andamento(current_user)
+    resumo = calcular_resumo_geral(current_user, origem='tudo', componente='todos')
+    tem_desempenho = resumo['total_respondidas'] > 0
     desempenho_data = {}
-
     if tem_desempenho:
-        percentual_geral = int(round((total_acertos / total_respondidas) * 100))
-        areas_lista = []
-        for area_nome, dados in areas_stats.items():
-            pct = int(round((dados['acertos'] / dados['total']) * 100))
-            areas_lista.append({
-                'area': area_nome,
-                'total': dados['total'],
-                'acertos': dados['acertos'],
-                'percentual': pct
-            })
-
-        areas_lista.sort(key=lambda x: (x['percentual'], -x['total']))
-        revisar_primeiro = areas_lista[:2]
-
         desempenho_data = {
-            'percentual_geral': percentual_geral,
-            'total_respondidas': total_respondidas,
-            'revisar_primeiro': revisar_primeiro
+            'percentual_geral': resumo['percentual_geral'],
+            'total_respondidas': resumo['total_respondidas'],
+            'revisar_primeiro': resumo['revisar_primeiro'],
         }
 
-    # 3. Último simulado finalizado
+    tendencia = obter_tendencia_inicio(current_user)
+
+    historico_1 = obter_historico_simulados(current_user, limite=1)
     ultimo_simulado = None
-    ultimo_sim_obj = Simulado.query.filter_by(
-        usuario_id=current_user.id
-    ).filter(Simulado.finalizado_em != None).order_by(Simulado.finalizado_em.desc()).first()
-
-    if ultimo_sim_obj:
-        obj_resp = 0
-        obj_corretas = 0
-        for resp in ultimo_sim_obj.respostas:
-            q = resp.questao
-            if q.tipo == 'objetiva' and not q.anulada and resp.alternativa_marcada:
-                obj_resp += 1
-                if resp.alternativa_marcada == q.gabarito_oficial:
-                    obj_corretas += 1
-        pct_ultimo = int(round((obj_corretas / obj_resp) * 100)) if obj_resp > 0 else 0
-        duracao_gasta = int((ultimo_sim_obj.finalizado_em - ultimo_sim_obj.iniciado_em).total_seconds())
-        tempo_gasto_fmt = formatar_duracao(duracao_gasta)
-
-        if ultimo_sim_obj.tipo == 'completo':
-            titulo_sim = f"Prova completa ENADE {ultimo_sim_obj.edicao_ano}"
-        else:
-            titulo_sim = f"Simulado parcial ({len(ultimo_sim_obj.questoes_assoc)} questões)"
-
+    if historico_1['itens']:
+        ult = historico_1['itens'][0]
         ultimo_simulado = {
-            'id': ultimo_sim_obj.id,
-            'titulo': titulo_sim,
-            'percentual': pct_ultimo,
-            'acertos': obj_corretas,
-            'respondidas': obj_resp,
-            'tempo_gasto': tempo_gasto_fmt,
-            'data': ultimo_sim_obj.finalizado_em.strftime('%d/%m/%Y'),
-            'url': url_for('main.resultado_simulado', id=ultimo_sim_obj.id)
+            'id': ult['id'],
+            'titulo': ult['tipo_label'].replace(' · ENADE', ' ENADE'),
+            'percentual': ult['percentual'],
+            'acertos': ult['acertos'],
+            'respondidas': ult['respondidas'],
+            'tempo_gasto': ult['tempo_utilizado'],
+            'data': ult['data'],
+            'url': ult['url'],
         }
 
     return render_template(
@@ -286,6 +193,7 @@ def inicio():
         simulado_em_andamento=simulado_em_andamento,
         tem_desempenho=tem_desempenho,
         desempenho=desempenho_data,
+        tendencia=tendencia,
         ultimo_simulado=ultimo_simulado
     )
 
@@ -552,27 +460,109 @@ def discussao_questao(id):
     )
 
 
-@main_bp.route('/simulados/novo', methods=['GET', 'POST'])
-@login_required
-def novo_simulado():
-    """T08 - Montar simulado (RF09, RN03, RN05, RN06)."""
-    # Se já tem simulado em andamento, redireciona para ele
+def _resolver_curso_id(usuario) -> int:
+    curso_id = usuario.curso_id
+    if not curso_id:
+        primeiro_curso = Curso.query.order_by(Curso.id.asc()).first()
+        curso_id = primeiro_curso.id if primeiro_curso else None
+    return curso_id
+
+
+def _obter_simulado_ativo_ou_expirar(usuario):
     simulado_ativo = Simulado.query.filter_by(
-        usuario_id=current_user.id,
+        usuario_id=usuario.id,
         finalizado_em=None
     ).first()
     if simulado_ativo:
         if simulado_ativo.is_expirado():
             simulado_ativo.finalizar(motivo='tempo')
             db.session.commit()
-        else:
-            flash("Você já possui um simulado em andamento.", "info")
-            return redirect(url_for('main.ver_simulado', id=simulado_ativo.id))
+            return None
+        return simulado_ativo
+    return None
 
-    curso_id = current_user.curso_id
-    if not curso_id:
-        primeiro_curso = Curso.query.order_by(Curso.id.asc()).first()
-        curso_id = primeiro_curso.id if primeiro_curso else None
+
+def _criar_simulado_parcial(usuario, componente='ambos', area='todas', quantidade=10):
+    """Cria um simulado parcial reutilizado por /simulados/novo e /simulados/rapido."""
+    if quantidade < 5 or quantidade > 40:
+        return None, "A quantidade de questões deve ser entre 5 e 40."
+
+    curso_id = _resolver_curso_id(usuario)
+    if componente == 'formacao_geral':
+        q_query = Questao.query.filter(
+            Questao.componente == 'formacao_geral',
+            Questao.anulada == False
+        )
+    elif componente == 'especifico':
+        q_query = Questao.query.filter(
+            Questao.componente == 'especifico',
+            Questao.curso_id == curso_id,
+            Questao.anulada == False
+        )
+    else:
+        q_query = Questao.query.filter(
+            db.or_(Questao.componente == 'formacao_geral', Questao.curso_id == curso_id),
+            Questao.anulada == False
+        )
+
+    if area and area != 'todas':
+        q_query = q_query.filter(Questao.area == area)
+
+    questoes_disp = q_query.order_by(Questao.ano.desc(), Questao.numero.asc()).all()
+    if len(questoes_disp) < quantidade:
+        return None, (
+            f"Não há questões suficientes para os filtros selecionados. "
+            f"Disponíveis: {len(questoes_disp)}, solicitadas: {quantidade}."
+        )
+
+    questoes_sel = questoes_disp[:quantidade]
+    duracao_padrao = quantidade * 360  # 6 minutos por questão (RN06)
+    duracao = int(os.environ.get('SIMULADO_DURACAO_TESTE', duracao_padrao))
+
+    simulado = Simulado(
+        usuario_id=usuario.id,
+        tipo='parcial',
+        componente=componente,
+        area=area,
+        duracao_segundos=duracao
+    )
+    db.session.add(simulado)
+    db.session.flush()
+
+    for idx, q in enumerate(questoes_sel, start=1):
+        db.session.add(SimuladoQuestao(simulado_id=simulado.id, questao_id=q.id, ordem=idx))
+
+    db.session.commit()
+    return simulado, None
+
+
+@main_bp.route('/simulados/rapido', methods=['POST'])
+@login_required
+def simulado_rapido():
+    """Atalho T05 (N07): cria direto um simulado parcial de 10 questões (1h00, todas as áreas, Ambos)."""
+    simulado_ativo = _obter_simulado_ativo_ou_expirar(current_user)
+    if simulado_ativo:
+        flash("Você já possui um simulado em andamento.", "info")
+        return redirect(url_for('main.ver_simulado', id=simulado_ativo.id))
+
+    simulado, erro_msg = _criar_simulado_parcial(current_user, componente='ambos', area='todas', quantidade=10)
+    if erro_msg:
+        flash(erro_msg, "danger")
+        return redirect(url_for('main.novo_simulado'))
+    return redirect(url_for('main.ver_simulado', id=simulado.id))
+
+
+@main_bp.route('/simulados/novo', methods=['GET', 'POST'])
+@login_required
+def novo_simulado():
+    """T08 - Montar simulado (RF09, RN03, RN05, RN06)."""
+    # Se já tem simulado em andamento, redireciona para ele
+    simulado_ativo = _obter_simulado_ativo_ou_expirar(current_user)
+    if simulado_ativo:
+        flash("Você já possui um simulado em andamento.", "info")
+        return redirect(url_for('main.ver_simulado', id=simulado_ativo.id))
+
+    curso_id = _resolver_curso_id(current_user)
 
     # Consulta edições completas do curso (Formação Geral + Específico do curso)
     anos_edicoes = [
@@ -666,59 +656,10 @@ def novo_simulado():
             area = request.form.get('area', 'todas')
             quantidade = request.form.get('quantidade', 10, type=int)
 
-            if quantidade < 5 or quantidade > 40:
-                flash("A quantidade de questões deve ser entre 5 e 40.", "danger")
+            simulado, erro_msg = _criar_simulado_parcial(current_user, componente, area, quantidade)
+            if erro_msg:
+                flash(erro_msg, "danger")
                 return redirect(url_for('main.novo_simulado'))
-
-            if componente == 'formacao_geral':
-                q_query = Questao.query.filter(
-                    Questao.componente == 'formacao_geral',
-                    Questao.anulada == False
-                )
-            elif componente == 'especifico':
-                q_query = Questao.query.filter(
-                    Questao.componente == 'especifico',
-                    Questao.curso_id == curso_id,
-                    Questao.anulada == False
-                )
-            else:
-                q_query = Questao.query.filter(
-                    db.or_(Questao.componente == 'formacao_geral', Questao.curso_id == curso_id),
-                    Questao.anulada == False
-                )
-
-            if area and area != 'todas':
-                q_query = q_query.filter(Questao.area == area)
-
-            questoes_disp = q_query.order_by(Questao.ano.desc(), Questao.numero.asc()).all()
-
-            if len(questoes_disp) < quantidade:
-                flash(
-                    f"Não há questões suficientes para os filtros selecionados. "
-                    f"Disponíveis: {len(questoes_disp)}, solicitadas: {quantidade}.",
-                    "danger"
-                )
-                return redirect(url_for('main.novo_simulado'))
-
-            questoes_sel = questoes_disp[:quantidade]
-            duracao_padrao = quantidade * 360  # 6 minutos por questão (RN06)
-            duracao = int(os.environ.get('SIMULADO_DURACAO_TESTE', duracao_padrao))
-
-            simulado = Simulado(
-                usuario_id=current_user.id,
-                tipo='parcial',
-                componente=componente,
-                area=area,
-                duracao_segundos=duracao
-            )
-            db.session.add(simulado)
-            db.session.flush()
-
-            for idx, q in enumerate(questoes_sel, start=1):
-                sq = SimuladoQuestao(simulado_id=simulado.id, questao_id=q.id, ordem=idx)
-                db.session.add(sq)
-
-            db.session.commit()
             return redirect(url_for('main.ver_simulado', id=simulado.id))
 
     return render_template(
@@ -1183,108 +1124,77 @@ def revisao_questao_simulado(id, questao_id):
 @main_bp.route('/desempenho')
 @login_required
 def desempenho():
-    """T12 - Painel de desempenho (RF15, US09, RN08, RN09)."""
-    origem = request.args.get('origem', 'tudo')  # 'tudo', 'simulados', 'estudo'
-    componente = request.args.get('componente', 'todos')  # 'todos', 'formacao_geral', 'especifico'
+    """T12 - Painel de desempenho (RF15, RF16, US09, US13, RN08, RN09)."""
+    origem = request.args.get('origem', 'tudo')
+    componente = request.args.get('componente', 'todos')
+    evolucao_area = request.args.get('evolucao_area', 'geral')
 
-    simulados_finalizados = Simulado.query.filter_by(
-        usuario_id=current_user.id
-    ).filter(Simulado.finalizado_em != None).all()
-    total_simulados_concluidos = len(simulados_finalizados)
-
-    respostas_estudo = obter_respostas_mais_recentes(current_user.id)
-
-    areas_stats = {}
-    total_respondidas = 0
-    total_acertos = 0
-    total_em_branco = 0
-
-    # 1. Processar dados de simulados se origem for 'tudo' ou 'simulados'
-    if origem in ('tudo', 'simulados'):
-        for sim in simulados_finalizados:
-            respostas_sim = {r.questao_id: r for r in sim.respostas}
-            for sq in sim.questoes_assoc:
-                q = sq.questao
-                if q.tipo != 'objetiva' or q.anulada:
-                    continue
-                if componente != 'todos' and q.componente != componente:
-                    continue
-
-                area = q.area
-                if area not in areas_stats:
-                    areas_stats[area] = {'respondidas': 0, 'acertos': 0, 'em_branco': 0, 'total': 0}
-                areas_stats[area]['total'] += 1
-
-                resp = respostas_sim.get(q.id)
-                if resp and resp.alternativa_marcada:
-                    total_respondidas += 1
-                    areas_stats[area]['respondidas'] += 1
-                    if resp.alternativa_marcada == q.gabarito_oficial:
-                        total_acertos += 1
-                        areas_stats[area]['acertos'] += 1
-                else:
-                    total_em_branco += 1
-                    areas_stats[area]['em_branco'] += 1
-
-    # 2. Processar dados de estudo se origem for 'tudo' ou 'estudo'
-    if origem in ('tudo', 'estudo'):
-        for r in respostas_estudo.values():
-            q = r.questao
-            if q.tipo != 'objetiva' or q.anulada:
-                continue
-            if componente != 'todos' and q.componente != componente:
-                continue
-
-            area = q.area
-            if area not in areas_stats:
-                areas_stats[area] = {'respondidas': 0, 'acertos': 0, 'em_branco': 0, 'total': 0}
-            areas_stats[area]['total'] += 1
-            areas_stats[area]['respondidas'] += 1
-            total_respondidas += 1
-            if r.correta is True:
-                total_acertos += 1
-                areas_stats[area]['acertos'] += 1
-
-    tem_dados = (total_respondidas > 0 or total_em_branco > 0)
-
-    # % acerto geral: corretas ÷ respondidas (RN08)
-    if total_respondidas > 0:
-        percentual_geral = int(round((total_acertos / total_respondidas) * 100))
-    else:
-        percentual_geral = 0
-
-    # Monta lista de áreas ordenada da mais fraca para a mais forte (RN09)
-    areas_lista = []
-    for area_nome, dados in areas_stats.items():
-        if dados['respondidas'] > 0:
-            pct = int(round((dados['acertos'] / dados['respondidas']) * 100))
-        else:
-            pct = 0
-        qtd_txt = f"{dados['acertos']} de {dados['respondidas']} questões"
-        label_txt = f"{area_nome}: {pct}% de acerto"
-        areas_lista.append({
-            'nome': area_nome,
-            'pct': pct,
-            'qtd': qtd_txt,
-            'label': label_txt,
-            'total': dados['total'],
-            'respondidas': dados['respondidas'],
-            'acertos': dados['acertos']
-        })
-
-    areas_lista.sort(key=lambda x: (x['pct'], x['respondidas']))
+    resumo = calcular_resumo_geral(current_user, origem=origem, componente=componente)
+    evolucao = calcular_evolucao_semanal(
+        current_user,
+        origem=origem,
+        componente=componente,
+        evolucao_area=evolucao_area
+    )
+    mudancas = calcular_mudancas_4_semanas(current_user, origem=origem, componente=componente)
+    ultimos_simulados = obter_historico_simulados(current_user, limite=5)
 
     return render_template(
         'main/desempenho.html',
         ativo='desempenho',
-        tem_dados=tem_dados,
+        tem_dados=resumo['tem_dados'],
         origem=origem,
         componente=componente,
-        percentual_geral=percentual_geral,
-        total_respondidas=total_respondidas,
-        total_simulados=total_simulados_concluidos,
-        total_em_branco=total_em_branco,
-        areas=areas_lista
+        evolucao_area=evolucao['area_selecionada'],
+        percentual_geral=resumo['percentual_geral'],
+        total_respondidas=resumo['total_respondidas'],
+        total_simulados=resumo['total_simulados'],
+        total_em_branco=resumo['total_em_branco'],
+        areas=resumo['areas'],
+        evolucao=evolucao,
+        mudancas=mudancas,
+        ultimos_simulados=ultimos_simulados['itens']
+    )
+
+
+@main_bp.route('/api/desempenho/evolucao')
+@login_required
+def api_desempenho_evolucao():
+    """Retorna o HTML parcial do gráfico de evolução semanal para atualização sem recarregar (JS)."""
+    origem = request.args.get('origem', 'tudo')
+    componente = request.args.get('componente', 'todos')
+    evolucao_area = request.args.get('evolucao_area', 'geral')
+
+    evolucao = calcular_evolucao_semanal(
+        current_user,
+        origem=origem,
+        componente=componente,
+        evolucao_area=evolucao_area
+    )
+    return render_template('partials/desempenho_evolucao.html', evolucao=evolucao)
+
+
+@main_bp.route('/simulados/historico')
+@login_required
+def historico_simulados():
+    """Histórico completo de simulados realizados (RF16 / US13)."""
+    tipo_filtro = request.args.get('tipo', 'todos')
+    pagina = request.args.get('pagina', 1, type=int)
+
+    simulado_ativo = obter_simulado_em_andamento(current_user)
+    historico = obter_historico_simulados(
+        current_user,
+        tipo_filtro=tipo_filtro,
+        pagina=pagina,
+        por_pagina=10
+    )
+
+    return render_template(
+        'main/simulado_historico.html',
+        ativo='simulados',
+        tipo_filtro=tipo_filtro,
+        simulado_ativo=simulado_ativo,
+        historico=historico
     )
 
 

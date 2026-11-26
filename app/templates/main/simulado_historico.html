@@ -1,0 +1,151 @@
+{% extends "base_app.html" %}
+
+{% set ativo = "simulados" %}
+
+{% block title %}Histórico de simulados — Apoio ENADE{% endblock %}
+
+{% block content %}
+<main class="container" style="padding-top: 32px; padding-bottom: 56px; display: flex; flex-direction: column; gap: 24px;">
+
+  <!-- Cabeçalho -->
+  <div style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: flex-end;">
+    <div>
+      <h1 style="margin: 0; font-size: clamp(1.8rem, 3.5vw, 2.2rem);">Histórico de simulados</h1>
+      <p class="text-muted" style="margin: 4px 0 0; font-size: 1.05rem;">
+        Acompanhe seus simulados concluídos e compare sua evolução entre provas do mesmo tipo.
+      </p>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('main.novo_simulado') }}">Novo simulado</a>
+  </div>
+
+  <!-- Simulado em andamento no topo -->
+  {% if simulado_ativo %}
+    <section aria-label="Simulado em andamento" class="result-banner" style="background-color: var(--color-bg-subtle);">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="13" r="8"></circle>
+        <path d="M12 9v4l2.5 2.5M9 2h6"></path>
+      </svg>
+      <div style="flex: 1 1 300px;">
+        <strong style="font-size: 1.05rem;">Simulado em andamento</strong>
+        <div class="text-muted" style="font-size: 0.95rem; margin-top: 2px;">
+          {{ simulado_ativo.detalhes }}
+        </div>
+      </div>
+      <a class="btn btn-primary" href="{{ simulado_ativo.url }}">Continuar</a>
+    </section>
+  {% endif %}
+
+  <!-- Filtro por tipo (GET) -->
+  <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;">
+    <nav aria-label="Filtrar simulados por tipo" class="historico-filtros">
+      <a href="{{ url_for('main.historico_simulados', tipo='todos') }}"
+         class="btn {% if tipo_filtro == 'todos' %}btn-primary{% else %}btn-secondary{% endif %}"
+         style="min-height: 44px; padding: 0 14px; font-size: 0.875rem;">
+        Todos
+      </a>
+      <a href="{{ url_for('main.historico_simulados', tipo='completo') }}"
+         class="btn {% if tipo_filtro == 'completo' %}btn-primary{% else %}btn-secondary{% endif %}"
+         style="min-height: 44px; padding: 0 14px; font-size: 0.875rem;">
+        Completos
+      </a>
+      <a href="{{ url_for('main.historico_simulados', tipo='parcial') }}"
+         class="btn {% if tipo_filtro == 'parcial' %}btn-primary{% else %}btn-secondary{% endif %}"
+         style="min-height: 44px; padding: 0 14px; font-size: 0.875rem;">
+        Parciais
+      </a>
+    </nav>
+    {% if historico.total_itens > 0 %}
+      <span class="text-muted" style="font-size: 0.875rem;">
+        {{ historico.total_itens }} simulado{% if historico.total_itens != 1 %}s{% endif %} encontrado{% if historico.total_itens != 1 %}s{% endif %}
+      </span>
+    {% endif %}
+  </div>
+
+  <!-- Lista de simulados finalizados -->
+  {% if historico.itens %}
+    <div class="custom-table-container responsive-cards-container">
+      <table class="custom-table responsive-cards">
+        <thead>
+          <tr>
+            <th scope="col">Data</th>
+            <th scope="col">Tipo</th>
+            <th scope="col">% de acerto</th>
+            <th scope="col">Variação</th>
+            <th scope="col">Tempo utilizado</th>
+            <th scope="col">Finalizado por</th>
+            <th scope="col" style="text-align: right;">Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in historico.itens %}
+            <tr>
+              <td data-label="Data">{{ s.data }}</td>
+              <td data-label="Tipo"><strong>{{ s.tipo_label }}</strong></td>
+              <td data-label="Acerto"><strong>{{ s.percentual }}%</strong></td>
+              <td data-label="Variação">
+                {% if s.variacao is none %}
+                  <span class="text-muted">&mdash;</span>
+                {% elif s.variacao > 0 %}
+                  <span class="trend-badge trend-up">&#9650; +{{ s.variacao }}</span>
+                {% elif s.variacao < 0 %}
+                  <span class="trend-badge trend-down">&#9660; {{ s.variacao }}</span>
+                {% else %}
+                  <span class="trend-badge trend-flat">0</span>
+                {% endif %}
+              </td>
+              <td data-label="Tempo">{{ s.tempo_utilizado }}</td>
+              <td data-label="Finalizado por">{{ s.finalizado_por }}</td>
+              <td class="td-action" style="text-align: right;">
+                <a href="{{ s.url }}" style="font-weight: 600;">Ver resultado &rsaquo;</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="text-muted" style="margin: 0; font-size: 0.8125rem;">
+      Variação em relação ao simulado anterior do mesmo tipo e área.
+    </p>
+
+    <!-- Paginação de 10 em 10 -->
+    {% if historico.total_paginas > 1 %}
+      <nav aria-label="Paginação do histórico de simulados" class="pagination-nav">
+        {% if historico.tem_anterior %}
+          <a class="btn btn-secondary"
+             href="{{ url_for('main.historico_simulados', tipo=tipo_filtro, pagina=historico.pagina - 1) }}"
+             aria-label="Página anterior">&lsaquo; Anterior</a>
+        {% else %}
+          <button class="btn btn-secondary" disabled aria-disabled="true">&lsaquo; Anterior</button>
+        {% endif %}
+
+        {% for p in range(1, historico.total_paginas + 1) %}
+          {% if p == historico.pagina %}
+            <span class="btn btn-primary" aria-current="page">{{ p }}</span>
+          {% else %}
+            <a class="btn btn-secondary"
+               href="{{ url_for('main.historico_simulados', tipo=tipo_filtro, pagina=p) }}">{{ p }}</a>
+          {% endif %}
+        {% endfor %}
+
+        {% if historico.tem_proxima %}
+          <a class="btn btn-secondary"
+             href="{{ url_for('main.historico_simulados', tipo=tipo_filtro, pagina=historico.pagina + 1) }}"
+             aria-label="Próxima página">Próxima &rsaquo;</a>
+        {% else %}
+          <button class="btn btn-secondary" disabled aria-disabled="true">Próxima &rsaquo;</button>
+        {% endif %}
+      </nav>
+    {% endif %}
+
+  {% else %}
+    <!-- Estado vazio -->
+    <section class="card" style="border-style: dashed; padding: 36px 28px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start;">
+      <p class="text-muted" style="margin: 0; font-size: 1.05rem;">
+        Você ainda não concluiu nenhum simulado.
+      </p>
+      <a class="btn btn-primary" href="{{ url_for('main.novo_simulado') }}">Fazer um simulado</a>
+    </section>
+  {% endif %}
+
+</main>
+{% endblock %}
