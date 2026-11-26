@@ -1,7 +1,10 @@
+import secrets
+from datetime import datetime, timedelta, timezone
 import click
+from flask import url_for
 from flask.cli import with_appcontext
 from app.extensions import db
-from app.models import Curso, Usuario, Questao, Alternativa
+from app.models import Curso, Usuario, Questao, Alternativa, ProfessorArea, TokenRecuperacao, AlteracaoUsuario
 
 def seed_database():
     """Popula o banco com os cursos, usuários de teste e questões do ENADE 2023 e 2021."""
@@ -70,6 +73,21 @@ def seed_database():
         admin.set_senha("admin1234")
         db.session.add(admin)
         click.echo("Usuário 'admin@teste.com' criado.")
+
+    # Professor Marcelo
+    if not Usuario.query.filter_by(email="marcelo@teste.com").first():
+        marcelo = Usuario(
+            nome="Prof. Marcelo",
+            email="marcelo@teste.com",
+            curso_id=cursos_map["Ciência da Computação"].id,
+            perfil="professor"
+        )
+        marcelo.set_senha("prof12345")
+        db.session.add(marcelo)
+        db.session.flush()
+        db.session.add(ProfessorArea(usuario_id=marcelo.id, area="Banco de Dados"))
+        db.session.add(ProfessorArea(usuario_id=marcelo.id, area="Redes"))
+        click.echo("Usuário 'marcelo@teste.com' criado.")
 
     cc_id = cursos_map["Ciência da Computação"].id
     ec_id = cursos_map["Engenharia de Computação"].id
@@ -504,3 +522,61 @@ def seed_command():
     """Popula o banco com os dados iniciais."""
     db.create_all()
     seed_database()
+
+
+@click.command("criar-admin")
+@click.option("--nome", required=True, help="Nome completo do administrador.")
+@click.option("--email", required=True, help="E-mail do administrador.")
+@with_appcontext
+def criar_admin_command(nome, email):
+    """Cria um administrador ou promove um usuário existente e gera link de senha (48h)."""
+    db.create_all()
+    email_norm = email.strip().lower()
+    usuario = Usuario.query.filter_by(email=email_norm).first()
+
+    if usuario:
+        perfil_ant = usuario.perfil
+        usuario.perfil = "admin"
+        usuario.ativo = True
+        db.session.add(AlteracaoUsuario(
+            usuario_alvo_id=usuario.id,
+            alterado_por_id=None,
+            tipo="perfil",
+            valor_anterior=perfil_ant,
+            valor_novo="admin",
+            motivo="via linha de comando"
+        ))
+        click.echo(f"Usuário '{email_norm}' promovido a administrador.")
+    else:
+        usuario = Usuario(
+            nome=nome.strip(),
+            email=email_norm,
+            perfil="admin",
+            ativo=True
+        )
+        usuario.set_senha(secrets.token_urlsafe(32))
+        db.session.add(usuario)
+        db.session.flush()
+        db.session.add(AlteracaoUsuario(
+            usuario_alvo_id=usuario.id,
+            alterado_por_id=None,
+            tipo="criacao",
+            valor_anterior=None,
+            valor_novo="admin",
+            motivo="via linha de comando"
+        ))
+        click.echo(f"Administrador '{email_norm}' criado.")
+
+    token_str = secrets.token_urlsafe(32)
+    expira_em = datetime.now(timezone.utc) + timedelta(hours=48)
+    token_obj = TokenRecuperacao(
+        usuario_id=usuario.id,
+        token=token_str,
+        expira_em=expira_em,
+        usado=False
+    )
+    db.session.add(token_obj)
+    db.session.commit()
+
+    link = f"/redefinir-senha/{token_str}"
+    click.echo(f"Link para definir a senha (válido por 48h): {link}")

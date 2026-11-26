@@ -195,7 +195,31 @@ O comando `flask seed` cadastra automaticamente as seguintes contas para testes:
 | Papel | Nome | E-mail | Senha | Curso |
 |---|---|---|---|---|
 | **Estudante** | Ana Souza | `ana@teste.com` | `12345678` | Ciência da Computação |
+| **Professor** | Prof. Marcelo | `marcelo@teste.com` | `prof12345` | Ciência da Computação (Áreas: Banco de Dados, Redes) |
 | **Administrador** | Administrador do Sistema | `admin@teste.com` | `admin1234` | Ciência da Computação |
+
+---
+
+## 🛡️ Perfis, Gestão de Usuários e Regras de Negócio (RN11, RN13–RN19)
+
+- **Perfis de acesso:**
+  - `estudante` (padrão): acessa simulados, banco de questões e desempenho.
+  - `professor`: acessa somente `/admin/comentarios` e o editor de comentário, filtrados pelas áreas atribuídas a ele.
+  - `admin`: acesso total (questões, comentários, importação CSV, gestão de usuários e moderação).
+- **Comando de emergência (`criar-admin`):**
+  ```bash
+  flask --app app criar-admin --nome "Nome Completo" --email admin@exemplo.com
+  ```
+  Cria um administrador (ou promove um usuário existente), registra auditoria com motivo `"via linha de comando"` e imprime o link de definição de senha (validade de 48h).
+- **Regras:**
+  - **RN11:** Apenas administradores cadastram, editam ou removem questões. Professores só editam comentários de gabarito das questões das áreas sob sua responsabilidade.
+  - **RN13:** Todo cadastro feito pela tela pública cria um usuário com perfil Estudante.
+  - **RN14:** Apenas um Administrador pode alterar perfis, áreas de professor ou status de contas.
+  - **RN15:** O sistema impede que o último Administrador ativo seja rebaixado ou desativado.
+  - **RN16:** Um administrador não pode alterar o próprio perfil nem desativar a própria conta.
+  - **RN17:** Contas não são apagadas pela interface, só desativadas; seus dados e respostas continuam no histórico.
+  - **RN18 (Privacidade / LGPD):** A gestão de usuários exibe apenas dados cadastrais, nunca respostas, simulados ou desempenho.
+  - **RN19:** Um professor precisa ter pelo menos uma área atribuída; sem área, vê o aviso *"Nenhuma área atribuída. Procure a administração."* e não acessa comentários.
 
 ---
 

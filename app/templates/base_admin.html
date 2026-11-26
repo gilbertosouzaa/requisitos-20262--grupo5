@@ -5,32 +5,41 @@
   <div class="container header-inner" style="min-height: 64px;">
     <!-- Logo + Badge Administração -->
     <div style="display: flex; align-items: center; gap: 12px;">
-      <a href="{{ url_for('admin.questoes') }}" class="brand-link" aria-label="Apoio ENADE - Administração">
+      <a href="{{ url_for('admin.comentarios') if current_user.perfil == 'professor' else url_for('admin.questoes') }}" class="brand-link" aria-label="Apoio ENADE - Administração">
         <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="" width="44" height="32">
         <strong style="font-size: 1.15rem;">Apoio ENADE</strong>
       </a>
       <span style="background: #1a1a1a; color: #ffffff; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;" aria-hidden="true">
-        Administração
+        {{ 'Professor' if current_user.perfil == 'professor' else 'Administração' }}
       </span>
     </div>
 
     <!-- Navegação do Painel Admin -->
     <nav class="site-nav" aria-label="Navegação da área administrativa" style="flex: 1; margin-left: 10px;">
+      {% if current_user.perfil == 'admin' %}
       <a class="nav-link {% if ativo == 'questoes' %}active{% endif %}"
          href="{{ url_for('admin.questoes') }}"
          {% if ativo == 'questoes' %}aria-current="page"{% endif %}>
         Questões
       </a>
+      {% endif %}
       <a class="nav-link {% if ativo == 'comentarios' %}active{% endif %}"
          href="{{ url_for('admin.comentarios') }}"
          {% if ativo == 'comentarios' %}aria-current="page"{% endif %}>
         Comentários
+      </a>
+      {% if current_user.perfil == 'admin' %}
+      <a class="nav-link {% if ativo == 'usuarios' %}active{% endif %}"
+         href="{{ url_for('admin.usuarios') }}"
+         {% if ativo == 'usuarios' %}aria-current="page"{% endif %}>
+        Usuários
       </a>
       <a class="nav-link {% if ativo == 'moderacao' %}active{% endif %}"
          href="{{ url_for('admin.moderacao') }}"
          {% if ativo == 'moderacao' %}aria-current="page"{% endif %}>
         Moderação <span class="text-muted" style="font-size: 0.8125rem; font-weight: 400;">(em breve)</span>
       </a>
+      {% endif %}
       <a class="nav-link" href="{{ url_for('main.inicio') }}" title="Ir para a visão do estudante">
         Ver como estudante &rsaquo;
       </a>

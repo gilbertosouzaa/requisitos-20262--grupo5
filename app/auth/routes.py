@@ -6,7 +6,7 @@ from flask_login import login_user, logout_user, current_user
 from app.auth import auth_bp
 from app.auth.forms import LoginForm, CadastroForm, RecuperarSenhaForm, RedefinirSenhaForm
 from app.extensions import db
-from app.models import Usuario, Curso, TokenRecuperacao
+from app.models import Usuario, Curso, TokenRecuperacao, utc_now
 from app.services.email import simular_envio_recuperacao
 
 def is_safe_url(target):
@@ -24,6 +24,8 @@ def login():
     if current_user.is_authenticated:
         if current_user.perfil == 'admin':
             return redirect(url_for('admin.questoes'))
+        if current_user.perfil == 'professor':
+            return redirect(url_for('admin.comentarios'))
         return redirect(url_for('main.inicio'))
 
     form = LoginForm()
@@ -36,12 +38,19 @@ def login():
 
         usuario = Usuario.query.filter_by(email=email).first()
         if usuario and usuario.verificar_senha(senha):
-            login_user(usuario)
-            if next_page and is_safe_url(next_page):
-                return redirect(next_page)
-            if usuario.perfil == 'admin':
-                return redirect(url_for('admin.questoes'))
-            return redirect(url_for('main.inicio'))
+            if not usuario.ativo:
+                erro_generico = "Esta conta está desativada. Procure a coordenação do curso."
+            else:
+                usuario.ultimo_acesso_em = utc_now()
+                db.session.commit()
+                login_user(usuario)
+                if next_page and is_safe_url(next_page):
+                    return redirect(next_page)
+                if usuario.perfil == 'admin':
+                    return redirect(url_for('admin.questoes'))
+                if usuario.perfil == 'professor':
+                    return redirect(url_for('admin.comentarios'))
+                return redirect(url_for('main.inicio'))
         else:
             # US02: Erro genérico que NÃO diz qual campo está incorreto
             erro_generico = "E-mail ou senha incorretos."

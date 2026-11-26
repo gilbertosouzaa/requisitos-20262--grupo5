@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>T04 Recuperar senha</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.wf{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#1a1a1a;font-size:15px;line-height:1.45}
+.wf *{box-sizing:border-box}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 20px;border:2px solid #1a1a1a;border-radius:8px;background:#fff;color:#1a1a1a;font:inherit;font-weight:600;text-decoration:none;cursor:pointer}
+.btn-p{background:#1a1a1a;color:#fff}
+a.btn-p:hover{color:#fff}
+.ph{display:flex;align-items:center;justify-content:center;border:1.5px dashed #777;background:#f0f0f0;color:#555;font-size:13px;text-align:center}
+.lbl{font-size:14px;font-weight:600}
+.inp{width:100%;min-height:44px;padding:0 12px;border:1.5px solid #555;border-radius:6px;font:inherit;background:#fff;color:#1a1a1a}
+.muted{color:#555}
+.state{display:inline-block;align-self:flex-start;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border:1.5px dashed #555;border-radius:4px;padding:2px 8px;color:#444}
+a{color:#1a1a1a}a:hover{color:#000}
+</style>
+</helmet>
+<div class="wf" style="min-height: 800px; background: #ffffff; display: flex; flex-direction: column">
+  <header style="border-bottom: 1.5px solid #1a1a1a">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 0 24px; min-height: 64px; display: flex; align-items: center; gap: 10px">
+      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none">
+        <span class="ph" style="width: 32px; height: 32px; border-radius: 6px">logo</span>
+        <strong style="font-size: 18px">Apoio ENADE</strong>
+      </a>
+    </div>
+  </header>
+
+  <main style="max-width: 1200px; width: 100%; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 24px">
+    <div>
+      <h1 style="margin: 0 0 4px; font-size: 28px">Recuperar senha</h1>
+      <p class="muted" style="margin: 0">Três estados da mesma tela, lado a lado.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; align-items: start">
+      <section style="border: 1.5px solid #1a1a1a; border-radius: 12px; padding: 28px; display: flex; flex-direction: column; gap: 16px">
+        <span class="state">Estado 1 · Solicitar</span>
+        <h2 style="margin: 0; font-size: 21px">Esqueceu a senha?</h2>
+        <p class="muted" style="margin: 0">Informe o e-mail da sua conta. Vamos enviar um link para criar uma nova senha.</p>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label class="lbl" for="email">E-mail</label>
+          <input class="inp" id="email" type="email" value="ana.souza@email.com">
+        </div>
+        <button class="btn btn-p" type="button" style="width: 100%">Enviar link</button>
+        <a href="T02-Login.dc.html" style="text-align: center; padding: 8px">Voltar para o login</a>
+      </section>
+
+      <section style="border: 1.5px solid #1a1a1a; border-radius: 12px; padding: 28px; display: flex; flex-direction: column; gap: 16px">
+        <span class="state">Estado 2 · Link enviado</span>
+        <div class="ph" style="width: 56px; height: 56px; border-radius: 50%">ícone</div>
+        <h2 style="margin: 0; font-size: 21px">Verifique seu e-mail</h2>
+        <p class="muted" style="margin: 0">Se <strong style="color: #1a1a1a">ana.souza@email.com</strong> estiver cadastrado, você vai receber um link para redefinir a senha. O link vale por <strong style="color: #1a1a1a">1 hora</strong>.</p>
+        <button class="btn" type="button" style="width: 100%">Reenviar link</button>
+        <a href="T02-Login.dc.html" style="text-align: center; padding: 8px">Voltar para o login</a>
+      </section>
+
+      <section style="border: 1.5px solid #1a1a1a; border-radius: 12px; padding: 28px; display: flex; flex-direction: column; gap: 16px">
+        <span class="state">Estado 3 · Link expirado</span>
+        <div class="ph" style="width: 56px; height: 56px; border-radius: 50%">ícone</div>
+        <h2 style="margin: 0; font-size: 21px">Este link expirou</h2>
+        <p class="muted" style="margin: 0">Por segurança, o link de recuperação vale por 1 hora. Peça um novo para continuar.</p>
+        <button class="btn btn-p" type="button" style="width: 100%">Pedir novo link</button>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

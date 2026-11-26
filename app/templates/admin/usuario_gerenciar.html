@@ -1,0 +1,203 @@
+{% extends "base_admin.html" %}
+
+{% block title %}Gerenciar {{ usuario.nome }} — Administração Apoio ENADE{% endblock %}
+
+{% block content %}
+<main class="container" style="padding-top: 24px; padding-bottom: 64px;">
+
+  <nav class="breadcrumb-nav" aria-label="Trilha de navegação" style="margin-bottom: 20px;">
+    <a href="{{ url_for('admin.usuarios') }}">Usuários</a>
+    <span aria-hidden="true">&rsaquo;</span>
+    <span aria-current="page">{{ usuario.nome }}</span>
+  </nav>
+
+  <header style="margin-bottom: 24px;">
+    <h1 style="font-size: 1.75rem; margin: 0 0 6px;">{{ usuario.nome }}</h1>
+    <p class="text-muted" style="margin: 0;">{{ usuario.email }}</p>
+  </header>
+
+  <div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 24px; align-items: start;">
+
+    <!-- Coluna Principal -->
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+
+      <!-- 1. Dados da conta -->
+      <section class="card" style="padding: 20px; border: 1.5px solid var(--color-border); border-radius: 10px;">
+        <h2 style="font-size: 1.2rem; margin: 0 0 14px;">Dados da conta</h2>
+        <dl style="display: grid; grid-template-columns: 140px 1fr; gap: 8px 12px; margin: 0 0 12px;">
+          <dt class="text-muted">Nome</dt><dd style="margin: 0;">{{ usuario.nome }}</dd>
+          <dt class="text-muted">E-mail</dt><dd style="margin: 0;">{{ usuario.email }}</dd>
+          <dt class="text-muted">Curso</dt><dd style="margin: 0;">{{ usuario.curso.nome if usuario.curso else '—' }}</dd>
+          <dt class="text-muted">Cadastro</dt><dd style="margin: 0;">{{ usuario.criado_em.strftime('%d/%m/%Y %H:%M') }}</dd>
+          <dt class="text-muted">Último acesso</dt><dd style="margin: 0;">{{ usuario.ultimo_acesso_em.strftime('%d/%m/%Y %H:%M') if usuario.ultimo_acesso_em else 'nunca' }}</dd>
+        </dl>
+        <p class="text-muted" style="margin: 0; font-size: 0.875rem;">
+          Dados pessoais são alterados pelo próprio usuário.
+        </p>
+      </section>
+
+      <!-- 2. Perfil de acesso -->
+      <section class="card" style="padding: 20px; border: 1.5px solid var(--color-border); border-radius: 10px;">
+        <h2 style="font-size: 1.2rem; margin: 0 0 14px;">Perfil de acesso</h2>
+
+        {% if bloqueio_motivo %}
+        <p class="text-muted" role="note" style="margin: 0 0 12px; padding: 10px 12px; background: #fafafa; border: 1px solid var(--color-border); border-radius: 6px; font-size: 0.9rem;">
+          {{ bloqueio_motivo }}
+        </p>
+        {% endif %}
+
+        <form id="form-perfil" method="POST" action="{{ url_for('admin.alterar_perfil_usuario', id=usuario.id) }}" data-nome="{{ usuario.nome }}" data-perfil-atual="{{ usuario.perfil }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
+            <label style="display: flex; gap: 8px; align-items: flex-start; cursor: pointer;">
+              <input type="radio" name="perfil" value="estudante" {% if usuario.perfil == 'estudante' %}checked{% endif %} {% if bloqueio_motivo %}disabled{% endif %}>
+              <span><strong>Estudante</strong> — Acessa simulados, banco de questões e desempenho.</span>
+            </label>
+            <label style="display: flex; gap: 8px; align-items: flex-start; cursor: pointer;">
+              <input type="radio" name="perfil" value="professor" {% if usuario.perfil == 'professor' %}checked{% endif %} {% if bloqueio_motivo %}disabled{% endif %}>
+              <span><strong>Professor</strong> — Cria, edita e publica comentários das áreas atribuídas.</span>
+            </label>
+            <label style="display: flex; gap: 8px; align-items: flex-start; cursor: pointer;">
+              <input type="radio" name="perfil" value="admin" {% if usuario.perfil == 'admin' %}checked{% endif %} {% if bloqueio_motivo %}disabled{% endif %}>
+              <span><strong>Administrador</strong> — Acesso total a questões, comentários e gestão de usuários.</span>
+            </label>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label for="motivo-perfil" style="font-weight: 600; font-size: 0.9rem;">Motivo da alteração (opcional)</label>
+            <input id="motivo-perfil" type="text" name="motivo" class="form-control" {% if bloqueio_motivo %}disabled{% endif %}>
+          </div>
+
+          <button type="submit" class="btn btn-primary" {% if bloqueio_motivo %}disabled{% endif %}>Salvar perfil</button>
+        </form>
+      </section>
+
+      <!-- 3. Áreas do professor -->
+      <section id="secao-areas-professor" class="card" style="padding: 20px; border: 1.5px solid var(--color-border); border-radius: 10px; {% if usuario.perfil != 'professor' %}display: none;{% endif %}">
+        <h2 style="font-size: 1.2rem; margin: 0 0 8px;">Áreas do professor</h2>
+        <p class="text-muted" style="margin: 0 0 14px; font-size: 0.9rem;">
+          Selecione pelo menos uma área (RN19). O professor só poderá comentar questões dessas áreas.
+        </p>
+
+        <form method="POST" action="{{ url_for('admin.alterar_areas_usuario', id=usuario.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {% set areas_atuais = usuario.lista_areas %}
+
+          {% for comp_key, comp_label in [('formacao_geral', 'Formação Geral'), ('especifico', 'Componente Específico')] %}
+            {% if areas_grupos[comp_key] %}
+            <div style="margin-bottom: 14px;">
+              <strong style="font-size: 0.875rem; color: var(--color-text-muted);">{{ comp_label }}</strong>
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; margin-top: 6px;">
+                {% for ar in areas_grupos[comp_key] %}
+                <label style="display: flex; gap: 6px; align-items: center; cursor: pointer;">
+                  <input type="checkbox" name="areas" value="{{ ar }}" {% if ar in areas_atuais %}checked{% endif %}>
+                  <span>{{ ar }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+          {% endfor %}
+
+          <button type="submit" class="btn btn-primary">Salvar áreas</button>
+        </form>
+      </section>
+
+      <!-- 4. Status da conta -->
+      <section class="card" style="padding: 20px; border: 1.5px solid var(--color-border); border-radius: 10px;">
+        <h2 style="font-size: 1.2rem; margin: 0 0 12px;">Status da conta</h2>
+        {% if usuario.ativo %}
+          <p style="margin: 0 0 14px;">Esta conta está <strong>Ativa</strong>.</p>
+          <button id="btn-abrir-desativar" type="button" class="btn btn-secondary" {% if bloqueio_motivo %}disabled{% endif %}>
+            Desativar conta
+          </button>
+        {% else %}
+          <p style="margin: 0 0 14px;">Esta conta está <strong>Desativada</strong>.</p>
+          <form method="POST" action="{{ url_for('admin.alterar_status_usuario', id=usuario.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="acao" value="reativar">
+            <button type="submit" class="btn btn-primary">Reativar conta</button>
+          </form>
+        {% endif %}
+      </section>
+
+    </div>
+
+    <!-- Coluna Lateral: Histórico -->
+    <aside class="card" style="padding: 20px; border: 1.5px solid var(--color-border); border-radius: 10px; background: #fafafa;">
+      <h2 style="font-size: 1.15rem; margin: 0 0 14px;">Histórico de alterações</h2>
+      {% if historico %}
+        <ul style="list-style: none; padding: 0; margin: 0 0 16px; display: flex; flex-direction: column; gap: 12px; font-size: 0.875rem;">
+          {% for h in historico %}
+          <li style="padding-bottom: 10px; border-bottom: 1px solid var(--color-border);">
+            <div>
+              <strong>{{ h.criado_em.strftime('%d/%m/%Y %H:%M') }}</strong>
+              &middot; {{ h.alterado_por.nome if h.alterado_por else 'Sistema (CLI)' }}
+            </div>
+            <div>
+              {% if h.tipo == 'criacao' %}
+                criou a conta com perfil <strong>{{ h.valor_novo }}</strong>
+              {% elif h.tipo == 'perfil' %}
+                alterou o perfil de <strong>{{ h.valor_anterior }}</strong> para <strong>{{ h.valor_novo }}</strong>
+              {% elif h.tipo == 'areas' %}
+                alterou áreas de <em>{{ h.valor_anterior }}</em> para <em>{{ h.valor_novo }}</em>
+              {% elif h.tipo == 'status' %}
+                alterou status de <strong>{{ h.valor_anterior }}</strong> para <strong>{{ h.valor_novo }}</strong>
+              {% endif %}
+            </div>
+            {% if h.motivo %}
+              <div class="text-muted">Motivo: {{ h.motivo }}</div>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted" style="margin: 0 0 16px; font-size: 0.9rem;">Nenhuma alteração registrada.</p>
+      {% endif %}
+
+      <p class="text-muted" style="margin: 0; font-size: 0.8125rem; border-top: 1px solid var(--color-border); padding-top: 12px;">
+        Por privacidade (LGPD), o desempenho do estudante não é exibido aqui.
+      </p>
+    </aside>
+
+  </div>
+
+  <!-- Dialog: Confirmação de promoção para Administrador -->
+  <dialog id="dialog-promover-admin" style="max-width: 460px; border-radius: 10px; border: 1.5px solid var(--color-border); padding: 24px;">
+    <h3 style="margin: 0 0 10px;">Confirmar promoção para Administrador</h3>
+    <p style="margin: 0 0 18px;">
+      {{ usuario.nome }} poderá cadastrar, editar e remover questões, publicar comentários e gerenciar outros usuários. Confirmar?
+    </p>
+    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+      <button id="btn-cancelar-admin" type="button" class="btn btn-secondary">Cancelar</button>
+      <button id="btn-confirmar-admin" type="button" class="btn btn-primary">Confirmar</button>
+    </div>
+  </dialog>
+
+  <!-- Dialog: Confirmação de desativação -->
+  <dialog id="dialog-desativar-conta" style="max-width: 460px; border-radius: 10px; border: 1.5px solid var(--color-border); padding: 24px;">
+    <h3 style="margin: 0 0 10px;">Desativar conta</h3>
+    <p style="margin: 0 0 14px;">
+      A pessoa não conseguirá mais entrar. As respostas e simulados continuam guardados.
+    </p>
+    <form method="POST" action="{{ url_for('admin.alterar_status_usuario', id=usuario.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="acao" value="desativar">
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label for="motivo-desativar" style="font-weight: 600; font-size: 0.9rem;">Motivo (opcional)</label>
+        <input id="motivo-desativar" type="text" name="motivo" class="form-control">
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button id="btn-cancelar-desativar" type="button" class="btn btn-secondary">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Desativar conta</button>
+      </div>
+    </form>
+  </dialog>
+
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin_usuario_gerenciar.js') }}"></script>
+{% endblock %}

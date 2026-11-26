@@ -1,8 +1,9 @@
 import csv
 import io
 import os
+import secrets
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from flask import (
     render_template, request, redirect, url_for, flash,
     jsonify, current_app, send_from_directory, Response, session, abort
@@ -15,8 +16,10 @@ from app.auth import requer_perfil
 from app.extensions import db
 from app.models import (
     Curso, Questao, Alternativa, RespostaEstudo,
-    SimuladoQuestao, SimuladoResposta, utc_now
+    SimuladoQuestao, SimuladoResposta, Usuario,
+    ProfessorArea, AlteracaoUsuario, TokenRecuperacao, utc_now
 )
+from app.services.email import simular_envio_recuperacao
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 MAX_FILE_SIZE = 2 * 1024 * 1024  # 2MB
@@ -517,20 +520,49 @@ def comentarios():
     """T15 - Fila de questões sem comentário publicado para priorização."""
     curso_id = request.args.get('curso', type=int)
     ano = request.args.get('ano', type=int)
+    area_filtro = request.args.get('area', '').strip()
     page = request.args.get('page', 1, type=int)
 
+    is_professor = current_user.perfil == 'professor'
+    areas_prof = current_user.lista_areas if is_professor else []
+
+    if is_professor and not areas_prof:
+        return render_template(
+            'admin/comentarios_lista.html',
+            ativo='comentarios',
+            questoes=[],
+            pagination=None,
+            cursos=[],
+            anos=[],
+            areas=[],
+            curso_id=None,
+            ano=None,
+            area_filtro='',
+            sem_area=True
+        )
+
     query = Questao.query.filter(Questao.comentario_status != 'publicado')
+
+    if is_professor:
+        query = query.filter(Questao.area.in_(areas_prof))
 
     if curso_id:
         query = query.filter(Questao.curso_id == curso_id)
     if ano:
         query = query.filter(Questao.ano == ano)
+    if area_filtro:
+        if not is_professor or area_filtro in areas_prof:
+            query = query.filter(Questao.area == area_filtro)
 
     query = query.order_by(Questao.ano.desc(), Questao.numero.asc())
     pagination = query.paginate(page=page, per_page=20, error_out=False)
 
     cursos = Curso.query.order_by(Curso.nome).all()
     anos = [r[0] for r in db.session.query(Questao.ano).distinct().order_by(Questao.ano.desc()).all()]
+    if is_professor:
+        areas = sorted(areas_prof)
+    else:
+        areas = [r[0] for r in db.session.query(Questao.area).distinct().order_by(Questao.area.asc()).all()]
 
     return render_template(
         'admin/comentarios_lista.html',
@@ -539,8 +571,11 @@ def comentarios():
         pagination=pagination,
         cursos=cursos,
         anos=anos,
+        areas=areas,
         curso_id=curso_id,
-        ano=ano
+        ano=ano,
+        area_filtro=area_filtro,
+        sem_area=False
     )
 
 
@@ -551,7 +586,13 @@ def editar_comentario(id):
     questao = db.session.get(Questao, id)
     if not questao:
         flash("Questão não encontrada.", "erro")
+        if current_user.perfil == 'professor':
+            return redirect(url_for('admin.comentarios'))
         return redirect(url_for('admin.questoes'))
+
+    if current_user.perfil == 'professor':
+        if questao.area not in current_user.lista_areas:
+            abort(403)
 
     if request.method == 'POST':
         action = request.form.get('action')  # 'rascunho' ou 'publicar'
@@ -598,6 +639,8 @@ def editar_comentario(id):
         else:
             flash(f"Comentário da questão {questao.numero} salvo como rascunho.", "sucesso")
 
+        if current_user.perfil == 'professor':
+            return redirect(url_for('admin.comentarios'))
         return redirect(url_for('admin.questoes'))
 
     return render_template(
@@ -910,3 +953,366 @@ def baixar_exemplo_csv():
 def moderacao():
     """Página 'Em construção' para moderação do fórum."""
     return render_template('admin/moderacao_em_construcao.html', ativo='moderacao')
+
+
+# ==============================================================================
+# T16 / T17 — Gestão de Usuários (RN11, RN14–RN19)
+# ==============================================================================
+
+def _areas_por_componente():
+    """Retorna as áreas distintas de Questao agrupadas por componente."""
+    rows = db.session.query(Questao.componente, Questao.area).distinct().order_by(Questao.area.asc()).all()
+    grupos = {'formacao_geral': [], 'especifico': []}
+    for comp, area in rows:
+        if comp in grupos and area not in grupos[comp]:
+            grupos[comp].append(area)
+    return grupos
+
+
+def _todas_areas_validas():
+    return {r[0] for r in db.session.query(Questao.area).distinct().all()}
+
+
+@admin_bp.route('/usuarios')
+@requer_perfil('admin')
+def usuarios():
+    """T16 - Lista de usuários com filtros, resumo e paginação (só admin)."""
+    q = request.args.get('q', '').strip()
+    perfil_filtro = request.args.get('perfil', '').strip()
+    status_filtro = request.args.get('status', 'ativos').strip()
+    curso_id = request.args.get('curso', type=int)
+    page = request.args.get('page', 1, type=int)
+
+    # Resumo global (sem dados de desempenho - RN18)
+    total_usuarios = Usuario.query.count()
+    total_admins = Usuario.query.filter_by(perfil='admin', ativo=True).count()
+    total_professores = Usuario.query.filter_by(perfil='professor', ativo=True).count()
+    total_desativados = Usuario.query.filter_by(ativo=False).count()
+
+    query = Usuario.query
+
+    if q:
+        termo = f"%{q}%"
+        query = query.filter(db.or_(Usuario.nome.ilike(termo), Usuario.email.ilike(termo)))
+    if perfil_filtro in ('estudante', 'professor', 'admin'):
+        query = query.filter(Usuario.perfil == perfil_filtro)
+    if status_filtro == 'ativos':
+        query = query.filter(Usuario.ativo.is_(True))
+    elif status_filtro == 'desativados':
+        query = query.filter(Usuario.ativo.is_(False))
+    if curso_id:
+        query = query.filter(Usuario.curso_id == curso_id)
+
+    query = query.order_by(Usuario.nome.asc())
+    pagination = query.paginate(page=page, per_page=20, error_out=False)
+    cursos = Curso.query.order_by(Curso.nome).all()
+
+    return render_template(
+        'admin/usuarios.html',
+        ativo='usuarios',
+        usuarios=pagination.items,
+        pagination=pagination,
+        cursos=cursos,
+        q=q,
+        perfil_filtro=perfil_filtro,
+        status_filtro=status_filtro,
+        curso_id=curso_id,
+        total_usuarios=total_usuarios,
+        total_admins=total_admins,
+        total_professores=total_professores,
+        total_desativados=total_desativados
+    )
+
+
+@admin_bp.route('/usuarios/novo', methods=['GET', 'POST'])
+@requer_perfil('admin')
+def novo_usuario():
+    """Criação de conta pela administração com link de definição de senha (48h)."""
+    cursos = Curso.query.order_by(Curso.nome).all()
+    areas_grupos = _areas_por_componente()
+    areas_validas = _todas_areas_validas()
+
+    if request.method == 'POST':
+        nome = request.form.get('nome', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        perfil = request.form.get('perfil', 'estudante').strip()
+        curso_id = request.form.get('curso_id', type=int)
+        areas_selecionadas = [a for a in request.form.getlist('areas') if a in areas_validas]
+
+        erros = []
+        if not nome:
+            erros.append("O nome é obrigatório.")
+        if not email:
+            erros.append("O e-mail é obrigatório.")
+        if perfil not in ('estudante', 'professor', 'admin'):
+            erros.append("Perfil inválido.")
+        if perfil == 'estudante' and not curso_id:
+            erros.append("O curso é obrigatório para estudantes.")
+        if perfil == 'professor' and not areas_selecionadas:
+            erros.append("Selecione pelo menos uma área.")
+
+        existente = Usuario.query.filter_by(email=email).first() if email else None
+        if existente:
+            return render_template(
+                'admin/usuario_novo.html',
+                ativo='usuarios',
+                cursos=cursos,
+                areas_grupos=areas_grupos,
+                nome=nome,
+                email=email,
+                perfil=perfil,
+                curso_id=curso_id,
+                areas_selecionadas=areas_selecionadas,
+                usuario_existente=existente,
+                erros=["Já existe uma conta com este e-mail."]
+            ), 400
+
+        if erros:
+            return render_template(
+                'admin/usuario_novo.html',
+                ativo='usuarios',
+                cursos=cursos,
+                areas_grupos=areas_grupos,
+                nome=nome,
+                email=email,
+                perfil=perfil,
+                curso_id=curso_id,
+                areas_selecionadas=areas_selecionadas,
+                erros=erros
+            ), 400
+
+        novo = Usuario(
+            nome=nome,
+            email=email,
+            perfil=perfil,
+            curso_id=curso_id if curso_id else None,
+            ativo=True
+        )
+        novo.set_senha(secrets.token_urlsafe(32))
+        db.session.add(novo)
+        db.session.flush()
+
+        if perfil == 'professor':
+            for area in sorted(set(areas_selecionadas)):
+                db.session.add(ProfessorArea(usuario_id=novo.id, area=area))
+
+        db.session.add(AlteracaoUsuario(
+            usuario_alvo_id=novo.id,
+            alterado_por_id=current_user.id,
+            tipo='criacao',
+            valor_anterior=None,
+            valor_novo=perfil,
+            motivo=None
+        ))
+
+        token_str = secrets.token_urlsafe(32)
+        expira_em = utc_now() + timedelta(hours=48)
+        db.session.add(TokenRecuperacao(
+            usuario_id=novo.id,
+            token=token_str,
+            expira_em=expira_em,
+            usado=False
+        ))
+        db.session.commit()
+
+        link = url_for('auth.redefinir_senha', token=token_str, _external=True)
+        simular_envio_recuperacao(novo.email, link)
+
+        flash(f"Conta criada. Enviamos um link para {novo.email} definir a senha.", "sucesso")
+        return redirect(url_for('admin.gerenciar_usuario', id=novo.id))
+
+    return render_template(
+        'admin/usuario_novo.html',
+        ativo='usuarios',
+        cursos=cursos,
+        areas_grupos=areas_grupos,
+        nome='',
+        email='',
+        perfil='estudante',
+        curso_id=None,
+        areas_selecionadas=[],
+        erros=[]
+    )
+
+
+@admin_bp.route('/usuarios/<int:id>')
+@requer_perfil('admin')
+def gerenciar_usuario(id):
+    """T17 - Gerenciar usuário (dados, perfil, áreas, status e histórico)."""
+    usuario = db.session.get(Usuario, id)
+    if not usuario:
+        flash("Usuário não encontrado.", "erro")
+        return redirect(url_for('admin.usuarios'))
+
+    areas_grupos = _areas_por_componente()
+    historico = AlteracaoUsuario.query.filter_by(usuario_alvo_id=usuario.id).order_by(AlteracaoUsuario.criado_em.desc()).all()
+
+    is_proprio = (usuario.id == current_user.id)
+    is_ultimo_admin = (
+        usuario.perfil == 'admin'
+        and usuario.ativo
+        and Usuario.query.filter_by(perfil='admin', ativo=True).count() <= 1
+    )
+
+    bloqueio_motivo = None
+    if is_proprio:
+        bloqueio_motivo = "Você não pode alterar o próprio perfil nem desativar a própria conta (RN16)."
+    elif is_ultimo_admin:
+        bloqueio_motivo = "Não é possível rebaixar ou desativar o último administrador ativo (RN15)."
+
+    return render_template(
+        'admin/usuario_gerenciar.html',
+        ativo='usuarios',
+        usuario=usuario,
+        areas_grupos=areas_grupos,
+        historico=historico,
+        is_proprio=is_proprio,
+        is_ultimo_admin=is_ultimo_admin,
+        bloqueio_motivo=bloqueio_motivo
+    )
+
+
+@admin_bp.route('/usuarios/<int:id>/perfil', methods=['POST'])
+@requer_perfil('admin')
+def alterar_perfil_usuario(id):
+    """Altera o perfil de acesso do usuário (RN14, RN15, RN16, RN19)."""
+    usuario = db.session.get(Usuario, id)
+    if not usuario:
+        flash("Usuário não encontrado.", "erro")
+        return redirect(url_for('admin.usuarios'))
+
+    if usuario.id == current_user.id:
+        flash("Você não pode alterar o próprio perfil (RN16).", "erro")
+        return redirect(url_for('admin.gerenciar_usuario', id=id)), 403
+
+    novo_perfil = request.form.get('perfil', '').strip()
+    motivo = request.form.get('motivo', '').strip() or None
+
+    if novo_perfil not in ('estudante', 'professor', 'admin'):
+        flash("Perfil inválido.", "erro")
+        return redirect(url_for('admin.gerenciar_usuario', id=id)), 400
+
+    if novo_perfil == usuario.perfil:
+        flash("O usuário já possui este perfil.", "aviso")
+        return redirect(url_for('admin.gerenciar_usuario', id=id))
+
+    if usuario.perfil == 'admin' and usuario.ativo and novo_perfil != 'admin':
+        admins_ativos = Usuario.query.filter_by(perfil='admin', ativo=True).count()
+        if admins_ativos <= 1:
+            flash("Não é possível rebaixar o último administrador ativo (RN15).", "erro")
+            return redirect(url_for('admin.gerenciar_usuario', id=id)), 400
+
+    perfil_anterior = usuario.perfil
+    usuario.perfil = novo_perfil
+
+    if perfil_anterior == 'professor' and novo_perfil != 'professor':
+        areas_ant = usuario.lista_areas
+        if areas_ant:
+            ProfessorArea.query.filter_by(usuario_id=usuario.id).delete()
+            db.session.add(AlteracaoUsuario(
+                usuario_alvo_id=usuario.id,
+                alterado_por_id=current_user.id,
+                tipo='areas',
+                valor_anterior=', '.join(areas_ant),
+                valor_novo='nenhuma (mudança de perfil)',
+                motivo=motivo
+            ))
+
+    db.session.add(AlteracaoUsuario(
+        usuario_alvo_id=usuario.id,
+        alterado_por_id=current_user.id,
+        tipo='perfil',
+        valor_anterior=perfil_anterior,
+        valor_novo=novo_perfil,
+        motivo=motivo
+    ))
+    db.session.commit()
+
+    flash("Perfil atualizado com sucesso.", "sucesso")
+    return redirect(url_for('admin.gerenciar_usuario', id=id))
+
+
+@admin_bp.route('/usuarios/<int:id>/areas', methods=['POST'])
+@requer_perfil('admin')
+def alterar_areas_usuario(id):
+    """Define as áreas de um professor (RN14, RN19)."""
+    usuario = db.session.get(Usuario, id)
+    if not usuario:
+        flash("Usuário não encontrado.", "erro")
+        return redirect(url_for('admin.usuarios'))
+
+    if usuario.perfil != 'professor':
+        flash("Apenas professores possuem áreas atribuídas.", "erro")
+        return redirect(url_for('admin.gerenciar_usuario', id=id)), 400
+
+    areas_validas = _todas_areas_validas()
+    novas_areas = sorted({a for a in request.form.getlist('areas') if a in areas_validas})
+
+    if not novas_areas:
+        flash("Selecione pelo menos uma área.", "erro")
+        return redirect(url_for('admin.gerenciar_usuario', id=id)), 400
+
+    areas_anteriores = sorted(usuario.lista_areas)
+    ProfessorArea.query.filter_by(usuario_id=usuario.id).delete()
+    for area in novas_areas:
+        db.session.add(ProfessorArea(usuario_id=usuario.id, area=area))
+
+    db.session.add(AlteracaoUsuario(
+        usuario_alvo_id=usuario.id,
+        alterado_por_id=current_user.id,
+        tipo='areas',
+        valor_anterior=', '.join(areas_anteriores) if areas_anteriores else 'nenhuma',
+        valor_novo=', '.join(novas_areas),
+        motivo=None
+    ))
+    db.session.commit()
+
+    flash("Áreas do professor atualizadas com sucesso.", "sucesso")
+    return redirect(url_for('admin.gerenciar_usuario', id=id))
+
+
+@admin_bp.route('/usuarios/<int:id>/status', methods=['POST'])
+@requer_perfil('admin')
+def alterar_status_usuario(id):
+    """Desativa ou reativa a conta do usuário (RN14, RN15, RN16, RN17)."""
+    usuario = db.session.get(Usuario, id)
+    if not usuario:
+        flash("Usuário não encontrado.", "erro")
+        return redirect(url_for('admin.usuarios'))
+
+    if usuario.id == current_user.id:
+        flash("Você não pode desativar a própria conta (RN16).", "erro")
+        return redirect(url_for('admin.gerenciar_usuario', id=id)), 403
+
+    acao = request.form.get('acao', '').strip()
+    motivo = request.form.get('motivo', '').strip() or None
+
+    if acao == 'desativar':
+        if usuario.perfil == 'admin' and usuario.ativo:
+            admins_ativos = Usuario.query.filter_by(perfil='admin', ativo=True).count()
+            if admins_ativos <= 1:
+                flash("Não é possível desativar o último administrador ativo (RN15).", "erro")
+                return redirect(url_for('admin.gerenciar_usuario', id=id)), 400
+        novo_status = False
+    elif acao == 'reativar':
+        novo_status = True
+    else:
+        flash("Ação inválida.", "erro")
+        return redirect(url_for('admin.gerenciar_usuario', id=id)), 400
+
+    status_anterior = 'Ativo' if usuario.ativo else 'Desativado'
+    status_novo_str = 'Ativo' if novo_status else 'Desativado'
+    usuario.ativo = novo_status
+
+    db.session.add(AlteracaoUsuario(
+        usuario_alvo_id=usuario.id,
+        alterado_por_id=current_user.id,
+        tipo='status',
+        valor_anterior=status_anterior,
+        valor_novo=status_novo_str,
+        motivo=motivo
+    ))
+    db.session.commit()
+
+    flash(f"Conta {status_novo_str.lower()} com sucesso.", "sucesso")
+    return redirect(url_for('admin.gerenciar_usuario', id=id))

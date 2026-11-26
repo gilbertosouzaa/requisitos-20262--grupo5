@@ -7,9 +7,15 @@
   
   <!-- Trilha de Navegação -->
   <nav class="breadcrumb-nav" aria-label="Trilha de navegação" style="margin-bottom: 20px;">
-    <a href="{{ url_for('admin.questoes') }}">Questões</a>
-    <span aria-hidden="true">&rsaquo;</span>
-    <a href="{{ url_for('admin.editar_questao', id=questao.id) }}">Questão {{ questao.numero }} · ENADE {{ questao.ano }}</a>
+    {% if current_user.perfil == 'professor' %}
+      <a href="{{ url_for('admin.comentarios') }}">Comentários</a>
+      <span aria-hidden="true">&rsaquo;</span>
+      <span>Questão {{ questao.numero }} · ENADE {{ questao.ano }}</span>
+    {% else %}
+      <a href="{{ url_for('admin.questoes') }}">Questões</a>
+      <span aria-hidden="true">&rsaquo;</span>
+      <a href="{{ url_for('admin.editar_questao', id=questao.id) }}">Questão {{ questao.numero }} · ENADE {{ questao.ano }}</a>
+    {% endif %}
     <span aria-hidden="true">&rsaquo;</span>
     <span aria-current="page">Comentário</span>
   </nav>
@@ -27,6 +33,15 @@
           <span><strong>Componente:</strong> {% if questao.componente == 'formacao_geral' %}Formação Geral{% else %}Específico{% endif %}</span>
           <span>&middot;</span>
           <span><strong>Área:</strong> {{ questao.area }}</span>
+          {% if current_user.perfil == 'professor' %}
+            <span style="background: #eef2ff; color: #1F4FD8; border: 1px solid #1F4FD8; padding: 2px 8px; border-radius: 999px; font-size: 0.78rem; font-weight: 600;">
+              Sua área: {{ questao.area }}
+            </span>
+          {% endif %}
+          {% if questao.autor_comentario %}
+            <span>&middot;</span>
+            <span><strong>Última edição:</strong> {{ questao.autor_comentario.nome }}{% if questao.comentario_atualizado_em %} em {{ questao.comentario_atualizado_em.strftime('%d/%m/%Y %H:%M') }}{% endif %}</span>
+          {% endif %}
           <span>&middot;</span>
           <span><strong>Tipo:</strong> <span style="text-transform: capitalize;">{{ questao.tipo }}</span></span>
           <span>&middot;</span>

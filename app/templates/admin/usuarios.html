@@ -1,0 +1,155 @@
+{% extends "base_admin.html" %}
+
+{% block title %}Usuários — Administração Apoio ENADE{% endblock %}
+
+{% block content %}
+<main class="container" style="padding-top: 32px; padding-bottom: 64px;">
+
+  <!-- Cabeçalho T16 -->
+  <header style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
+    <div>
+      <h1 style="font-size: 1.75rem; margin: 0 0 6px;">Usuários</h1>
+      <p class="text-muted" style="margin: 0; font-size: 0.95rem;">
+        {{ total_usuarios }} usuário{{ 's' if total_usuarios != 1 else '' }}
+        &middot; {{ total_admins }} administrador{{ 'es' if total_admins != 1 else '' }}
+        &middot; {{ total_professores }} professor{{ 'es' if total_professores != 1 else '' }}
+        &middot; {{ total_desativados }} desativado{{ 's' if total_desativados != 1 else '' }}
+      </p>
+    </div>
+    <a href="{{ url_for('admin.novo_usuario') }}" class="btn btn-primary" style="min-height: 44px; display: inline-flex; align-items: center;">
+      + Novo usuário
+    </a>
+  </header>
+
+  <!-- Filtros -->
+  <section class="card" style="margin-bottom: 24px; padding: 18px 20px; background: #fafafa; border: 1.5px solid var(--color-border); border-radius: 10px;" aria-label="Filtros de usuários">
+    <form method="GET" action="{{ url_for('admin.usuarios') }}" style="display: flex; flex-wrap: wrap; gap: 14px; align-items: end;">
+
+      <div class="form-group" style="margin: 0; flex: 1; min-width: 220px;">
+        <label for="filtro-q" style="font-weight: 600; font-size: 0.875rem;">Buscar</label>
+        <input id="filtro-q" type="text" name="q" value="{{ q }}" class="form-control" placeholder="Nome ou e-mail" style="background: #ffffff;">
+      </div>
+
+      <div class="form-group" style="margin: 0; min-width: 160px;">
+        <label for="filtro-perfil" style="font-weight: 600; font-size: 0.875rem;">Perfil</label>
+        <select id="filtro-perfil" name="perfil" class="form-control" style="background: #ffffff;">
+          <option value="">Todos</option>
+          <option value="estudante" {% if perfil_filtro == 'estudante' %}selected{% endif %}>Estudante</option>
+          <option value="professor" {% if perfil_filtro == 'professor' %}selected{% endif %}>Professor</option>
+          <option value="admin" {% if perfil_filtro == 'admin' %}selected{% endif %}>Administrador</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin: 0; min-width: 150px;">
+        <label for="filtro-status" style="font-weight: 600; font-size: 0.875rem;">Status</label>
+        <select id="filtro-status" name="status" class="form-control" style="background: #ffffff;">
+          <option value="ativos" {% if status_filtro == 'ativos' %}selected{% endif %}>Ativos</option>
+          <option value="desativados" {% if status_filtro == 'desativados' %}selected{% endif %}>Desativados</option>
+          <option value="todos" {% if status_filtro == 'todos' %}selected{% endif %}>Todos</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin: 0; min-width: 200px;">
+        <label for="filtro-curso" style="font-weight: 600; font-size: 0.875rem;">Curso</label>
+        <select id="filtro-curso" name="curso" class="form-control" style="background: #ffffff;">
+          <option value="">Todos os cursos</option>
+          {% for c in cursos %}
+            <option value="{{ c.id }}" {% if curso_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <button type="submit" class="btn btn-primary" style="min-height: 42px;">Filtrar</button>
+        <a href="{{ url_for('admin.usuarios') }}" class="btn btn-secondary" style="min-height: 42px; display: inline-flex; align-items: center;">Limpar</a>
+      </div>
+
+    </form>
+  </section>
+
+  <!-- Tabela de Usuários -->
+  <section class="card" style="padding: 0; border: 1.5px solid var(--color-border); border-radius: 10px; overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.92rem;">
+      <thead>
+        <tr style="background: #f5f5f5; border-bottom: 1.5px solid var(--color-border); text-align: left;">
+          <th style="padding: 12px 14px;">Nome</th>
+          <th style="padding: 12px 14px;">E-mail</th>
+          <th style="padding: 12px 14px;">Curso</th>
+          <th style="padding: 12px 14px;">Perfil</th>
+          <th style="padding: 12px 14px;">Áreas</th>
+          <th style="padding: 12px 14px;">Status</th>
+          <th style="padding: 12px 14px;">Cadastro</th>
+          <th style="padding: 12px 14px;">Último acesso</th>
+          <th style="padding: 12px 14px; text-align: right;">Ação</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in usuarios %}
+        <tr style="border-bottom: 1px solid var(--color-border);">
+          <td style="padding: 12px 14px; font-weight: 600;">
+            {{ u.nome }}
+            {% if u.id == current_user.id %}
+              <span class="text-muted" style="font-weight: 400; font-size: 0.85rem;">(você)</span>
+            {% endif %}
+          </td>
+          <td style="padding: 12px 14px;">{{ u.email }}</td>
+          <td style="padding: 12px 14px;">{{ u.curso.nome if u.curso else '—' }}</td>
+          <td style="padding: 12px 14px;">
+            {% if u.perfil == 'admin' %}
+              <span style="background: #1a1a1a; color: #ffffff; padding: 3px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 600;">Administrador</span>
+            {% elif u.perfil == 'professor' %}
+              <span style="border: 1.5px solid #1a1a1a; color: #1a1a1a; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 600;">Professor</span>
+            {% else %}
+              <span style="background: #f0f0f0; color: #333333; padding: 3px 8px; border-radius: 4px; font-size: 0.78rem;">Estudante</span>
+            {% endif %}
+          </td>
+          <td style="padding: 12px 14px;">
+            {% if u.perfil == 'professor' %}
+              {{ u.lista_areas | join(', ') if u.lista_areas else 'Nenhuma' }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td style="padding: 12px 14px;">
+            {% if u.ativo %}
+              <span style="background: #e8f5e9; color: #1b5e20; padding: 3px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 600;">Ativo</span>
+            {% else %}
+              <span style="border: 1.5px dashed #777777; color: #555555; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem;">Desativado</span>
+            {% endif %}
+          </td>
+          <td style="padding: 12px 14px;">{{ u.criado_em.strftime('%d/%m/%Y') }}</td>
+          <td style="padding: 12px 14px;">
+            {{ u.ultimo_acesso_em.strftime('%d/%m/%Y %H:%M') if u.ultimo_acesso_em else 'nunca' }}
+          </td>
+          <td style="padding: 12px 14px; text-align: right;">
+            <a href="{{ url_for('admin.gerenciar_usuario', id=u.id) }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;">Gerenciar</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9" style="padding: 24px; text-align: center;" class="text-muted">
+            Nenhum usuário encontrado com os filtros aplicados.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Paginação -->
+  {% if pagination and pagination.pages > 1 %}
+  <nav aria-label="Paginação de usuários" style="margin-top: 20px; display: flex; justify-content: center; gap: 8px;">
+    {% if pagination.has_prev %}
+      <a class="btn btn-secondary" href="{{ url_for('admin.usuarios', page=pagination.prev_num, q=q, perfil=perfil_filtro, status=status_filtro, curso=curso_id) }}">Anterior</a>
+    {% endif %}
+    <span style="display: inline-flex; align-items: center; padding: 0 12px;" class="text-muted">
+      Página {{ pagination.page }} de {{ pagination.pages }}
+    </span>
+    {% if pagination.has_next %}
+      <a class="btn btn-secondary" href="{{ url_for('admin.usuarios', page=pagination.next_num, q=q, perfil=perfil_filtro, status=status_filtro, curso=curso_id) }}">Próxima</a>
+    {% endif %}
+  </nav>
+  {% endif %}
+
+</main>
+{% endblock %}

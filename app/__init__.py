@@ -3,7 +3,7 @@ from flask import Flask
 from config import Config
 from app.extensions import db, bcrypt, login_manager, csrf
 from app.models import Usuario
-from app.seed import init_db_command, seed_command
+from app.seed import init_db_command, seed_command, criar_admin_command
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -25,7 +25,17 @@ def create_app(config_class=Config):
 
     @login_manager.user_loader
     def load_user(user_id):
-        return db.session.get(Usuario, int(user_id))
+        db.session.expire_all()
+        usuario = db.session.get(Usuario, int(user_id))
+        if usuario and not usuario.is_active:
+            return None
+        return usuario
+
+    @app.before_request
+    def verificar_usuario_ativo():
+        from flask_login import current_user, logout_user
+        if current_user.is_authenticated and not current_user.is_active:
+            logout_user()
 
     # Registra Blueprints
     from app.auth import auth_bp
@@ -39,5 +49,6 @@ def create_app(config_class=Config):
     # Registra comandos CLI
     app.cli.add_command(init_db_command)
     app.cli.add_command(seed_command)
+    app.cli.add_command(criar_admin_command)
 
     return app

@@ -14,10 +14,19 @@ class Usuario(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     senha_hash = db.Column(db.String(128), nullable=False)
     curso_id = db.Column(db.Integer, db.ForeignKey('curso.id'), nullable=True)
-    perfil = db.Column(db.String(20), default='estudante', nullable=False)  # 'estudante' | 'admin'
+    perfil = db.Column(db.String(20), default='estudante', nullable=False)  # 'estudante' | 'professor' | 'admin'
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    ultimo_acesso_em = db.Column(db.DateTime, nullable=True)
     criado_em = db.Column(db.DateTime, default=utc_now, nullable=False)
+    atualizado_em = db.Column(db.DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     curso = db.relationship('Curso', back_populates='usuarios')
+    areas_professor = db.relationship(
+        'ProfessorArea',
+        back_populates='usuario',
+        cascade='all, delete-orphan',
+        order_by='ProfessorArea.area'
+    )
     tokens_recuperacao = db.relationship(
         'TokenRecuperacao',
         back_populates='usuario',
@@ -33,6 +42,14 @@ class Usuario(UserMixin, db.Model):
         back_populates='usuario',
         cascade='all, delete-orphan'
     )
+
+    @property
+    def is_active(self):
+        return bool(self.ativo)
+
+    @property
+    def lista_areas(self):
+        return [pa.area for pa in self.areas_professor]
 
     def set_senha(self, senha: str):
         self.senha_hash = bcrypt.generate_password_hash(senha).decode('utf-8')
@@ -287,5 +304,42 @@ class SimuladoResposta(db.Model):
 
     def __repr__(self):
         return f"<SimuladoResposta {self.id}: Simulado {self.simulado_id} - Questao {self.questao_id}>"
+
+
+class ProfessorArea(db.Model):
+    __tablename__ = 'professor_area'
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
+    area = db.Column(db.String(100), nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint('usuario_id', 'area', name='uq_professor_area'),
+    )
+
+    usuario = db.relationship('Usuario', back_populates='areas_professor')
+
+    def __repr__(self):
+        return f"<ProfessorArea {self.usuario_id}: {self.area}>"
+
+
+class AlteracaoUsuario(db.Model):
+    __tablename__ = 'alteracao_usuario'
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_alvo_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
+    alterado_por_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=True)
+    tipo = db.Column(db.String(20), nullable=False)  # 'perfil' | 'status' | 'areas' | 'criacao'
+    valor_anterior = db.Column(db.String(255), nullable=True)
+    valor_novo = db.Column(db.String(255), nullable=True)
+    motivo = db.Column(db.String(255), nullable=True)
+    criado_em = db.Column(db.DateTime, default=utc_now, nullable=False)
+
+    usuario_alvo = db.relationship('Usuario', foreign_keys=[usuario_alvo_id])
+    alterado_por = db.relationship('Usuario', foreign_keys=[alterado_por_id])
+
+    def __repr__(self):
+        return f"<AlteracaoUsuario {self.id}: {self.tipo} (alvo={self.usuario_alvo_id})>"
+
 
 

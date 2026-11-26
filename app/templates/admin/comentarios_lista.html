@@ -12,6 +12,11 @@
     </p>
   </header>
 
+  {% if sem_area %}
+  <div class="alert alert-aviso" role="alert" style="padding: 16px 20px; border: 1.5px solid var(--color-border); border-radius: 10px; background: #fffbea;">
+    Nenhuma área atribuída. Procure a administração.
+  </div>
+  {% else %}
   <!-- Filtros -->
   <section class="card" style="margin-bottom: 24px; padding: 18px 20px; background: #fafafa; border: 1.5px solid var(--color-border); border-radius: 10px;" aria-label="Filtros da fila de comentários">
     <form method="GET" action="{{ url_for('admin.comentarios') }}" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: end;">
@@ -34,6 +39,17 @@
           <option value="">Todos os anos</option>
           {% for a in anos %}
             <option value="{{ a }}" {% if ano == a %}selected{% endif %}>{{ a }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Área -->
+      <div class="form-group" style="margin: 0; min-width: 200px;">
+        <label for="filtro-area" style="font-weight: 600; font-size: 0.875rem;">Área</label>
+        <select id="filtro-area" name="area" class="form-control" style="background: #ffffff;">
+          <option value="">Todas as áreas</option>
+          {% for ar in areas %}
+            <option value="{{ ar }}" {% if area_filtro == ar %}selected{% endif %}>{{ ar }}</option>
           {% endfor %}
         </select>
       </div>
@@ -132,5 +148,6 @@
     </nav>
   {% endif %}
 
+  {% endif %}
 </main>
 {% endblock %}
