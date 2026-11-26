@@ -8,51 +8,67 @@
       <strong>Apoio ENADE</strong>
     </a>
 
-    <nav class="site-nav" aria-label="Navegação da área do estudante">
-      <a class="nav-link {% if ativo == 'inicio' %}active{% endif %}"
-         href="{{ url_for('main.inicio') }}"
-         {% if ativo == 'inicio' %}aria-current="page"{% endif %}>
-        In&iacute;cio
-      </a>
-      <a class="nav-link {% if ativo == 'questoes' %}active{% endif %}"
-         href="{{ url_for('main.questoes') }}"
-         {% if ativo == 'questoes' %}aria-current="page"{% endif %}>
-        Quest&otilde;es
-      </a>
-      <a class="nav-link {% if ativo == 'simulados' %}active{% endif %}"
-         href="{{ url_for('main.novo_simulado') }}"
-         {% if ativo == 'simulados' %}aria-current="page"{% endif %}>
-        Simulados
-      </a>
-      <a class="nav-link {% if ativo == 'desempenho' %}active{% endif %}"
-         href="{{ url_for('main.desempenho') }}"
-         {% if ativo == 'desempenho' %}aria-current="page"{% endif %}>
-        Desempenho
-      </a>
-      {% if current_user.perfil == 'admin' %}
-        <a class="nav-link" href="{{ url_for('admin.questoes') }}">
-          Administração
-        </a>
-      {% endif %}
-    </nav>
+    <button type="button"
+            class="btn btn-secondary nav-toggle-btn"
+            id="btn-menu-mobile"
+            aria-label="Abrir menu"
+            aria-expanded="false"
+            aria-controls="menu-navegacao-painel">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+      <span>Menu</span>
+    </button>
 
-    <div class="user-menu">
-      <div class="user-badge" title="Usuário logado">
-        <span class="avatar-placeholder" aria-hidden="true">
-          {% if current_user.nome %}
-            {{ current_user.nome[:2].upper() }}
-          {% else %}
-            U
-          {% endif %}
-        </span>
-        <span>{{ current_user.nome }}</span>
+    <div class="header-nav-panel" id="menu-navegacao-painel">
+      <nav class="site-nav" aria-label="Navegação da área do estudante">
+        <a class="nav-link {% if ativo == 'inicio' %}active{% endif %}"
+           href="{{ url_for('main.inicio') }}"
+           {% if ativo == 'inicio' %}aria-current="page"{% endif %}>
+          In&iacute;cio
+        </a>
+        <a class="nav-link {% if ativo == 'questoes' %}active{% endif %}"
+           href="{{ url_for('main.questoes') }}"
+           {% if ativo == 'questoes' %}aria-current="page"{% endif %}>
+          Quest&otilde;es
+        </a>
+        <a class="nav-link {% if ativo == 'simulados' %}active{% endif %}"
+           href="{{ url_for('main.novo_simulado') }}"
+           {% if ativo == 'simulados' %}aria-current="page"{% endif %}>
+          Simulados
+        </a>
+        <a class="nav-link {% if ativo == 'desempenho' %}active{% endif %}"
+           href="{{ url_for('main.desempenho') }}"
+           {% if ativo == 'desempenho' %}aria-current="page"{% endif %}>
+          Desempenho
+        </a>
+        {% if current_user.perfil == 'admin' %}
+          <a class="nav-link" href="{{ url_for('admin.questoes') }}">
+            Administração
+          </a>
+        {% endif %}
+      </nav>
+
+      <div class="user-menu">
+        <div class="user-badge" title="Usuário logado">
+          <span class="avatar-placeholder" aria-hidden="true">
+            {% if current_user.nome %}
+              {{ current_user.nome[:2].upper() }}
+            {% else %}
+              U
+            {% endif %}
+          </span>
+          <span>{{ current_user.nome }}</span>
+        </div>
+        <form action="{{ url_for('auth.logout') }}" method="POST" style="margin: 0; display: inline;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-secondary btn-sair-header">
+            Sair
+          </button>
+        </form>
       </div>
-      <form action="{{ url_for('auth.logout') }}" method="POST" style="margin: 0; display: inline;">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-secondary" style="min-height: 38px; padding: 0 14px; font-size: 0.875rem;">
-          Sair
-        </button>
-      </form>
     </div>
   </div>
 </header>

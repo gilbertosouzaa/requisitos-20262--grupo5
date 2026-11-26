@@ -81,6 +81,32 @@ Sistema web de apoio ao estudante para preparação ao ENADE, reunindo banco de 
 - **Moderação do Fórum (`/admin/moderacao` - US15 P2):**
   - Item "Moderação (em breve)" com página de placeholder semântica "Em construção".
 
+### Etapa 5: Histórico de Evolução do Desempenho (RF16 / US13)
+- **Camada de Serviço (`app/services/desempenho.py`):** Cálculos isolados em funções puras recebendo usuário e filtros, mantendo rotas e templates livres de lógica de negócio.
+- **Regras de Cálculo:**
+  - **RN08 / RN03 / RN09:** Considera apenas questões objetivas respondidas e não anuladas (`corretas ÷ objetivas respondidas`). Questões em branco e discursivas ficam fora do percentual; cada resposta usa a área cadastrada na questão.
+  - **Data de referência:** No modo estudo, `RespostaEstudo.respondida_em`; em simulados, `Simulado.finalizado_em`. Simulados em andamento não entram.
+  - **Agrupamento semanal:** Semanas de segunda a domingo no fuso `America/Sao_Paulo` (as datas continuam gravadas em UTC e são convertidas apenas no agrupamento). Semanas sem resposta ficam vazias ("sem atividade"), nunca como 0%.
+  - **Contagem de respostas repetidas na evolução:** Na evolução semanal, o sistema conta **cada resposta dada naquela semana**, inclusive quando o estudante refaz a mesma questão, porque o objetivo é medir a prática da semana (decisão documentada para RF16/US13).
+  - **Privacidade (RNF04):** Todos os cálculos são restritos ao usuário autenticado.
+- **Painel de Desempenho (`/desempenho`):**
+  - **Evolução do seu acerto:** Gráfico SVG gerado no servidor pelo Jinja (sem bibliotecas JS), eixo Y 0%–100% com grades 25/50/75, eixo X com início da semana, interrupção de linha em semanas sem atividade, seletor de área com atualização assíncrona via JS (`/api/desempenho/evolucao`) e fallback sem JS ("Atualizar"), comparação entre últimas 4 semanas e 4 anteriores com ▲/▼ e `<details>` "Ver dados do gráfico". Exibido a partir de 2 semanas com atividade.
+  - **O que mudou nas últimas 4 semanas:** Compara áreas com pelo menos 5 objetivas respondidas em cada período (4 últimas vs 4 anteriores), listando até 3 em "Melhorou" e até 3 em "Precisa de atenção" com link "Estudar área ›".
+  - **Seus últimos simulados:** Tabela com os 5 simulados finalizados mais recentes, variação em pontos em relação ao simulado anterior do **mesmo tipo** (completo vs parcial) e link para o histórico completo.
+- **Histórico de Simulados (`/simulados/historico`):** Lista paginada (10 em 10), filtro por tipo (Todos / Completos / Parciais), simulado em andamento destacado no topo com tempo restante e botão "Continuar".
+- **Início (`/inicio`):** Card "Seu desempenho" exibe a tendência das últimas 4 semanas com link "Ver evolução" para `/desempenho#evolucao` quando há dados comparáveis, além do atalho **"Simulado rápido · 10 questões"** (`POST /simulados/rapido`), que inicia um simulado parcial de 1h00 com todas as áreas e componente *Ambos* (ou retoma o simulado ativo).
+- **Ajustes de Comparação e Tempo (B1 / B2):**
+  - **Variação entre simulados (B1):** Provas completas comparam-se apenas com a prova completa anterior; simulados parciais comparam-se apenas com o parcial anterior do **mesmo grupo `(componente, area)`**.
+  - **Formatação de tempo unificada (B2):** Função `formatar_tempo_legivel(segundos)` exibindo `"menos de 1 min"` (< 1 min), `"38 min"` (< 1 h) e `"1h00"` / `"3h15"` (>= 1 h) em todas as telas, mantendo apenas o cronômetro regressivo do simulado em `h:mm:ss`.
+
+### Etapa 6: Responsividade Mobile (RNF02 / N07)
+- **Breakpoints únicos** em `app/static/css/style.css`: celular (`max-width: 767px`) e tablet (`max-width: 1023px`), validados a partir de **360 px** sem rolagem horizontal, com alvos de toque mínimos de 44×44 px e fonte base de 16 px nos campos de formulário.
+- **Cabeçalho (`menu.js`):** Botão *"Menu"* acessível no celular abrindo painel vertical (fecha com `Esc` e devolve o foco); sem JS, a navegação permanece visível empilhada abaixo do logo.
+- **Banco de Questões (T06):** Botão *"Filtros (N ativos)"* abre painel em tela cheia com rodapé fixo (*Aplicar* / *Limpar*), foco preso e fechamento com `Esc` (fallback empilhado sem JS).
+- **Questão (T07):** Coluna lateral vai para baixo da questão, *"Confirmar resposta"* fixo no rodapé (`sticky` com `safe-area-inset-bottom`), textarea discursiva com no mínimo 8 linhas e tabelas/imagens contidas na largura da tela.
+- **Simulado em Andamento (T09/T10):** Cabeçalho compacto fixo (`cronômetro`, `Questão X/N`, botão `Mapa`), mapa em *bottom sheet* com grade de 6 colunas e ações (*Sair* / *Entregar*), barra inferior fixa com *Anterior* / *Próxima* e modal de entrega limitado a `92vw`.
+- **Resultado, Histórico e Desempenho:** KPIs em grade 2×N, tabelas convertidas em cartões via CSS (`responsive-cards`) sem duplicar conteúdo para leitores de tela, e gráfico SVG escalável pelo `viewBox` (eixo X alternado abaixo de 480 px).
+
 ---
 
 ## 🛠️ Stack Tecnológica
@@ -180,6 +206,12 @@ flask --app app init-db
 flask --app app seed
 ```
 
+Para gerar dados de demonstração do histórico de evolução (~7 semanas de estudo e 5 simulados finalizados) sem alterar o seed padrão:
+```bash
+flask --app app seed-historico --email ana@teste.com
+```
+*(O comando é idempotente: se o usuário já possuir histórico gerado, avisa e não duplica.)*
+
 ### 4. Executar o servidor web
 ```bash
 flask --app app run
@@ -238,3 +270,12 @@ Para rodar especificamente a validação ponta a ponta com CSRF ativo:
 ```bash
 python tests/test_etapa2_e2e.py
 ```
+
+### Testes Automatizados de Layout Responsivo (Playwright)
+As dependências de desenvolvimento e verificação visual ficam separadas em `requirements-dev.txt`:
+```bash
+pip install -r requirements-dev.txt
+python -m playwright install chromium
+pytest -m responsivo
+```
+Os testes verificam as larguras **360 px, 390 px, 768 px e 1280 px**, garantindo ausência de rolagem horizontal, alvos de toque mínimos de 44×44 px e salvando capturas de tela em `tests/screenshots/`. Se o Playwright não estiver instalado, os testes são pulados automaticamente sem quebrar a suíte normal.

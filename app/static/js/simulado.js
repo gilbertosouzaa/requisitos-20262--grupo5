@@ -18,7 +18,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // Elementos do DOM
   const cronometroDisplay = document.getElementById('cronometro-display');
   const textoStatusSalvamento = document.getElementById('texto-status-salvamento');
+  const textoStatusSalvamentoMapa = document.getElementById('status-salvamento-mapa');
+  function atualizarTextoSalvamento(msg) {
+    if (textoStatusSalvamento) textoStatusSalvamento.textContent = msg;
+    if (textoStatusSalvamentoMapa) textoStatusSalvamentoMapa.textContent = msg;
+  }
   const qOrdem = document.getElementById('q-ordem');
+  const qOrdemCompact = document.getElementById('q-ordem-compact');
   const qSubtitulo = document.getElementById('q-subtitulo');
   const qEnunciado = document.getElementById('q-enunciado');
   const qImagemContainer = document.getElementById('q-imagem-container');
@@ -63,13 +69,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function formatarTempoHorasMin(segundos) {
-    if (segundos <= 0) return '0min';
+    if (segundos < 60) return 'menos de 1 min';
+    if (segundos < 3600) return `${Math.floor(segundos / 60)} min`;
     const h = Math.floor(segundos / 3600);
     const m = Math.floor((segundos % 3600) / 60);
-    if (h > 0) {
-      return `${h}h${m < 10 ? '0' : ''}${m}`;
-    }
-    return `${m}min`;
+    return `${h}h${m < 10 ? '0' : ''}${m}`;
   }
 
   // Atualização visual do cronômetro
@@ -152,9 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Disparo de salvamento de resposta (RNF07)
   async function salvarResposta(questaoId, payload) {
-    if (textoStatusSalvamento) {
-      textoStatusSalvamento.textContent = 'Salvando…';
-    }
+    atualizarTextoSalvamento('Salvando…');
 
     try {
       const resp = await fetch(`/api/simulados/${simuladoId}/respostas/${questaoId}`, {
@@ -174,8 +176,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const json = await resp.json();
       if (json.sucesso) {
-        if (json.salvo_em && textoStatusSalvamento) {
-          textoStatusSalvamento.textContent = `Respostas salvas automaticamente às ${json.salvo_em}`;
+        if (json.salvo_em) {
+          atualizarTextoSalvamento(`Respostas salvas automaticamente às ${json.salvo_em}`);
         }
         if (typeof json.tempo_restante === 'number') {
           // Sincroniza cronômetro com o servidor
@@ -257,6 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Cabeçalho da questão
     if (qOrdem) qOrdem.textContent = q.ordem;
+    if (qOrdemCompact) qOrdemCompact.textContent = `Questão ${q.ordem}/${totalQuestoes}`;
     if (qSubtitulo) {
       const compNome = q.componente === 'formacao_geral' ? 'Formação Geral' : 'Componente Específico';
       const tipoNome = q.tipo === 'objetiva' ? 'Objetiva' : 'Discursiva';
@@ -491,13 +494,78 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Clique em células do mapa lateral
+  const asideMapa = document.getElementById('aside-mapa');
+  const mapaBackdrop = document.getElementById('mapa-backdrop');
+  const btnAbrirMapa = document.getElementById('btn-abrir-mapa');
+  const btnFecharMapa = document.getElementById('btn-fechar-mapa');
+  const btnAbrirModalMapa = document.getElementById('btn-abrir-modal-entrega-mapa');
+
+  function abrirMapaMobile() {
+    if (!asideMapa) return;
+    asideMapa.classList.add('is-open');
+    if (mapaBackdrop) mapaBackdrop.classList.add('is-open');
+    document.body.classList.add('modal-open');
+    if (btnAbrirMapa) btnAbrirMapa.setAttribute('aria-expanded', 'true');
+    const firstBtn = asideMapa.querySelector('button, a');
+    if (firstBtn) firstBtn.focus();
+  }
+
+  function fecharMapaMobile(devolverFoco = true) {
+    if (!asideMapa || !asideMapa.classList.contains('is-open')) return;
+    asideMapa.classList.remove('is-open');
+    if (mapaBackdrop) mapaBackdrop.classList.remove('is-open');
+    document.body.classList.remove('modal-open');
+    if (btnAbrirMapa) {
+      btnAbrirMapa.setAttribute('aria-expanded', 'false');
+      if (devolverFoco) btnAbrirMapa.focus();
+    }
+  }
+
+  if (btnAbrirMapa) btnAbrirMapa.addEventListener('click', abrirMapaMobile);
+  if (btnFecharMapa) btnFecharMapa.addEventListener('click', () => fecharMapaMobile(true));
+  if (mapaBackdrop) mapaBackdrop.addEventListener('click', () => fecharMapaMobile(true));
+
+  document.addEventListener('keydown', (e) => {
+    if (!asideMapa || !asideMapa.classList.contains('is-open')) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      fecharMapaMobile(true);
+      return;
+    }
+    if (e.key === 'Tab') {
+      const focusables = Array.from(
+        asideMapa.querySelectorAll('a[href], button:not([disabled])')
+      ).filter(el => el.offsetParent !== null);
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  });
+
   if (mapaGrade) {
     mapaGrade.addEventListener('click', (e) => {
       const cell = e.target.closest('.mapa-cell');
       if (cell) {
         const ordem = parseInt(cell.getAttribute('data-ordem'), 10);
-        if (ordem) irParaOrdem(ordem);
+        if (ordem) {
+          irParaOrdem(ordem);
+          fecharMapaMobile(false);
+        }
       }
+    });
+  }
+
+  if (btnAbrirModalMapa) {
+    btnAbrirModalMapa.addEventListener('click', () => {
+      fecharMapaMobile(false);
+      abrirModalEntrega();
     });
   }
 

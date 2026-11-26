@@ -4,7 +4,7 @@
 <header class="site-header" style="background-color: #f5f5f5; border-bottom: 2px solid var(--color-border);">
   <div class="container header-inner" style="min-height: 64px;">
     <!-- Logo + Badge Administração -->
-    <div style="display: flex; align-items: center; gap: 12px;">
+    <div class="admin-brand-wrap" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
       <a href="{{ url_for('admin.comentarios') if current_user.perfil == 'professor' else url_for('admin.questoes') }}" class="brand-link" aria-label="Apoio ENADE - Administração">
         <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="" width="44" height="32">
         <strong style="font-size: 1.15rem;">Apoio ENADE</strong>
@@ -14,55 +14,71 @@
       </span>
     </div>
 
-    <!-- Navegação do Painel Admin -->
-    <nav class="site-nav" aria-label="Navegação da área administrativa" style="flex: 1; margin-left: 10px;">
-      {% if current_user.perfil == 'admin' %}
-      <a class="nav-link {% if ativo == 'questoes' %}active{% endif %}"
-         href="{{ url_for('admin.questoes') }}"
-         {% if ativo == 'questoes' %}aria-current="page"{% endif %}>
-        Questões
-      </a>
-      {% endif %}
-      <a class="nav-link {% if ativo == 'comentarios' %}active{% endif %}"
-         href="{{ url_for('admin.comentarios') }}"
-         {% if ativo == 'comentarios' %}aria-current="page"{% endif %}>
-        Comentários
-      </a>
-      {% if current_user.perfil == 'admin' %}
-      <a class="nav-link {% if ativo == 'usuarios' %}active{% endif %}"
-         href="{{ url_for('admin.usuarios') }}"
-         {% if ativo == 'usuarios' %}aria-current="page"{% endif %}>
-        Usuários
-      </a>
-      <a class="nav-link {% if ativo == 'moderacao' %}active{% endif %}"
-         href="{{ url_for('admin.moderacao') }}"
-         {% if ativo == 'moderacao' %}aria-current="page"{% endif %}>
-        Moderação <span class="text-muted" style="font-size: 0.8125rem; font-weight: 400;">(em breve)</span>
-      </a>
-      {% endif %}
-      <a class="nav-link" href="{{ url_for('main.inicio') }}" title="Ir para a visão do estudante">
-        Ver como estudante &rsaquo;
-      </a>
-    </nav>
+    <button type="button"
+            class="btn btn-secondary nav-toggle-btn"
+            id="btn-menu-mobile"
+            aria-label="Abrir menu"
+            aria-expanded="false"
+            aria-controls="menu-navegacao-painel">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+      <span>Menu</span>
+    </button>
 
-    <!-- Menu do Usuário Admin -->
-    <div class="user-menu">
-      <div class="user-badge" title="Administrador logado">
-        <span class="avatar-placeholder" aria-hidden="true" style="background-color: #1a1a1a; color: #ffffff;">
-          {% if current_user.nome %}
-            {{ current_user.nome[:2].upper() }}
-          {% else %}
-            AD
-          {% endif %}
-        </span>
-        <span style="font-weight: 600;">{{ current_user.nome }}</span>
+    <div class="header-nav-panel" id="menu-navegacao-painel">
+      <!-- Navegação do Painel Admin -->
+      <nav class="site-nav" aria-label="Navegação da área administrativa">
+        {% if current_user.perfil == 'admin' %}
+        <a class="nav-link {% if ativo == 'questoes' %}active{% endif %}"
+           href="{{ url_for('admin.questoes') }}"
+           {% if ativo == 'questoes' %}aria-current="page"{% endif %}>
+          Questões
+        </a>
+        {% endif %}
+        <a class="nav-link {% if ativo == 'comentarios' %}active{% endif %}"
+           href="{{ url_for('admin.comentarios') }}"
+           {% if ativo == 'comentarios' %}aria-current="page"{% endif %}>
+          Comentários
+        </a>
+        {% if current_user.perfil == 'admin' %}
+        <a class="nav-link {% if ativo == 'usuarios' %}active{% endif %}"
+           href="{{ url_for('admin.usuarios') }}"
+           {% if ativo == 'usuarios' %}aria-current="page"{% endif %}>
+          Usuários
+        </a>
+        <a class="nav-link {% if ativo == 'moderacao' %}active{% endif %}"
+           href="{{ url_for('admin.moderacao') }}"
+           {% if ativo == 'moderacao' %}aria-current="page"{% endif %}>
+          Moderação <span class="text-muted" style="font-size: 0.8125rem; font-weight: 400;">(em breve)</span>
+        </a>
+        {% endif %}
+        <a class="nav-link" href="{{ url_for('main.inicio') }}" title="Ir para a visão do estudante">
+          Ver como estudante &rsaquo;
+        </a>
+      </nav>
+
+      <!-- Menu do Usuário Admin -->
+      <div class="user-menu">
+        <div class="user-badge" title="Administrador logado">
+          <span class="avatar-placeholder" aria-hidden="true" style="background-color: #1a1a1a; color: #ffffff;">
+            {% if current_user.nome %}
+              {{ current_user.nome[:2].upper() }}
+            {% else %}
+              AD
+            {% endif %}
+          </span>
+          <span style="font-weight: 600;">{{ current_user.nome }}</span>
+        </div>
+        <form action="{{ url_for('auth.logout') }}" method="POST" style="margin: 0; display: inline;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-secondary btn-sair-header">
+            Sair
+          </button>
+        </form>
       </div>
-      <form action="{{ url_for('auth.logout') }}" method="POST" style="margin: 0; display: inline;">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-secondary" style="min-height: 38px; padding: 0 14px; font-size: 0.875rem;">
-          Sair
-        </button>
-      </form>
     </div>
   </div>
 </header>

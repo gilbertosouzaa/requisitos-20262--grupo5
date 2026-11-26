@@ -18,12 +18,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const resumoSimulado = document.getElementById('resumo-simulado');
 
   function formatarMinutos(totalMin) {
+    if (totalMin < 1) return 'menos de 1 min';
     const horas = Math.floor(totalMin / 60);
     const mins = totalMin % 60;
     if (horas > 0) {
       return `${horas}h${mins < 10 ? '0' : ''}${mins}`;
     }
-    return `${mins}min`;
+    return `${mins} min`;
   }
 
   function atualizarEstadoCards() {

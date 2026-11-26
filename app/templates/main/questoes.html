@@ -8,16 +8,32 @@
 <div class="container" style="padding-top: 32px; padding-bottom: 60px;">
   <h1 style="margin: 0 0 20px; font-size: 1.85rem;">Banco de quest&otilde;es</h1>
 
+  {% set qtd_filtros = (filtros.anos|length) + (filtros.areas|length) + (filtros.tipos|length) + (filtros.situacoes|length) + (1 if filtros.componente != 'todos' else 0) + (1 if curso_selecionado else 0) %}
+  <div class="mobile-filter-trigger-wrap">
+    <button type="button"
+            class="btn btn-secondary mobile-filter-btn"
+            id="btn-abrir-filtros"
+            aria-expanded="false"
+            aria-controls="painel-filtros">
+      Filtros ({{ qtd_filtros }} ativo{% if qtd_filtros != 1 %}s{% endif %})
+    </button>
+  </div>
+
   <div class="banco-layout">
     <!-- Barra Lateral de Filtros (GET) -->
-    <aside class="filter-sidebar" aria-label="Filtros de questões">
+    <aside class="filter-sidebar" id="painel-filtros" aria-label="Filtros de questões">
       <form method="GET" action="{{ url_for('main.questoes') }}" id="form-filtros">
         <!-- Cabeçalho dos filtros -->
         <div class="filter-header" style="margin-bottom: 14px;">
           <strong style="font-size: 1.1rem;">Filtros</strong>
-          <a href="{{ url_for('main.questoes') }}" style="font-size: 0.875rem; color: var(--color-text);">
-            Limpar
-          </a>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <a href="{{ url_for('main.questoes') }}" class="filter-clear-desktop" style="font-size: 0.875rem; color: var(--color-text);">
+              Limpar
+            </a>
+            <button type="button" class="btn btn-secondary filter-close-mobile" id="btn-fechar-filtros" aria-label="Fechar filtros">
+              Fechar
+            </button>
+          </div>
         </div>
 
         <!-- Curso -->
@@ -108,7 +124,10 @@
           <input type="hidden" name="ordem" value="{{ filtros.ordem }}">
         {% endif %}
 
-        <button type="submit" class="btn btn-primary btn-block">Aplicar filtros</button>
+        <div class="filter-sticky-footer">
+          <a href="{{ url_for('main.questoes') }}" class="btn btn-secondary filter-clear-mobile">Limpar</a>
+          <button type="submit" class="btn btn-primary btn-block">Aplicar filtros</button>
+        </div>
       </form>
     </aside>
 

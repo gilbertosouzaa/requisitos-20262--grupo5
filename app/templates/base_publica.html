@@ -8,14 +8,30 @@
       <strong>Apoio ENADE</strong>
     </a>
 
-    <nav class="site-nav" aria-label="Navegação principal">
-      <a class="nav-link {% if ativo == 'questoes' %}active{% endif %}" href="{{ url_for('main.questoes') }}">Banco de questões</a>
-      <a class="nav-link" href="{{ url_for('main.landing') }}#como-funciona">Como funciona</a>
-    </nav>
+    <button type="button"
+            class="btn btn-secondary nav-toggle-btn"
+            id="btn-menu-mobile"
+            aria-label="Abrir menu"
+            aria-expanded="false"
+            aria-controls="menu-navegacao-painel">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+      <span>Menu</span>
+    </button>
 
-    <div class="header-actions">
-      <a class="btn btn-secondary" href="{{ url_for('auth.login') }}">Entrar</a>
-      <a class="btn btn-primary" href="{{ url_for('auth.cadastro') }}">Criar conta</a>
+    <div class="header-nav-panel" id="menu-navegacao-painel">
+      <nav class="site-nav" aria-label="Navegação principal">
+        <a class="nav-link {% if ativo == 'questoes' %}active{% endif %}" href="{{ url_for('main.questoes') }}">Banco de questões</a>
+        <a class="nav-link" href="{{ url_for('main.landing') }}#como-funciona">Como funciona</a>
+      </nav>
+
+      <div class="header-actions">
+        <a class="btn btn-secondary" href="{{ url_for('auth.login') }}">Entrar</a>
+        <a class="btn btn-primary" href="{{ url_for('auth.cadastro') }}">Criar conta</a>
+      </div>
     </div>
   </div>
 </header>

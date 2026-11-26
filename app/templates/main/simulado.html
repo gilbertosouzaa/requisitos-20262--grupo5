@@ -7,9 +7,9 @@
 <header class="simulado-header">
   <div class="simulado-header-inner">
     <!-- Título e Status de Salvamento Automático -->
-    <div style="flex: 1 1 280px;">
-      <strong style="font-size: 1.1rem; display: block;">{{ titulo_simulado }}</strong>
-      <div id="status-salvamento" class="text-muted" style="font-size: 0.875rem; display: flex; gap: 6px; align-items: center; margin-top: 3px;">
+    <div class="simulado-header-title-wrap" style="flex: 1 1 280px;">
+      <strong class="simulado-titulo-desktop" style="font-size: 1.1rem; display: block;">{{ titulo_simulado }}</strong>
+      <div id="status-salvamento" class="text-muted simulado-status-linha" style="font-size: 0.875rem; display: flex; gap: 6px; align-items: center; margin-top: 3px;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M5 12.5l4.5 4.5L19 7"></path>
         </svg>
@@ -23,22 +23,35 @@
       </div>
     </div>
 
-    <!-- Cronômetro com role="timer" (RF10, RN05) -->
-    <div role="timer" aria-label="Tempo restante" class="timer-badge">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-        <circle cx="12" cy="13" r="8"></circle>
-        <path d="M12 9v4l2.5 2.5M9 2h6"></path>
-      </svg>
-      <div>
-        <div class="text-muted" style="font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">
-          TEMPO RESTANTE
+    <!-- Linha compacta no celular: cronômetro, Questão X/N e botão Mapa -->
+    <div class="simulado-header-controls">
+      <!-- Cronômetro com role="timer" (RF10, RN05) -->
+      <div role="timer" aria-label="Tempo restante" class="timer-badge">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="13" r="8"></circle>
+          <path d="M12 9v4l2.5 2.5M9 2h6"></path>
+        </svg>
+        <div>
+          <div class="text-muted timer-label-desktop" style="font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">
+            TEMPO RESTANTE
+          </div>
+          <div id="cronometro-display" class="timer-digits">--:--:--</div>
         </div>
-        <div id="cronometro-display" class="timer-digits">--:--:--</div>
       </div>
+
+      <span class="simulado-compact-progress" id="q-ordem-compact">Quest&atilde;o {{ ordem_atual }}/{{ total_questoes }}</span>
+
+      <button type="button"
+              class="btn btn-secondary simulado-btn-mapa-mobile"
+              id="btn-abrir-mapa"
+              aria-expanded="false"
+              aria-controls="aside-mapa">
+        Mapa
+      </button>
     </div>
 
-    <!-- Botões Sair e Entregar -->
-    <div style="display: flex; gap: 10px;">
+    <!-- Botões Sair e Entregar (desktop; no celular ficam dentro do painel do mapa) -->
+    <div class="simulado-header-actions-desktop" style="display: flex; gap: 10px;">
       <a class="btn btn-secondary" href="{{ url_for('main.inicio') }}" title="O tempo continua correndo">
         Sair
       </a>
@@ -104,7 +117,7 @@
     </div>
 
     <!-- Navegação entre questões -->
-    <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; border-top: 1.5px solid var(--color-border-subtle); padding-top: 20px; margin-top: 10px;">
+    <div class="simulado-nav-bar" style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; border-top: 1.5px solid var(--color-border-subtle); padding-top: 20px; margin-top: 10px;">
       <button class="btn btn-secondary" type="button" id="btn-anterior">
         &lsaquo; Anterior
       </button>
@@ -130,13 +143,21 @@
 
   </article>
 
-  <!-- Coluna Lateral: Mapa de Questões -->
-  <aside aria-label="Mapa de questões" style="flex: 1 1 280px; max-width: 340px; border: 1.5px solid var(--color-border); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px; background: #ffffff;">
-    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+  <!-- Backdrop do Mapa (bottom sheet no celular) -->
+  <div id="mapa-backdrop" class="mapa-backdrop" aria-hidden="true"></div>
+
+  <!-- Coluna Lateral / Bottom Sheet: Mapa de Questões -->
+  <aside id="aside-mapa" class="simulado-mapa-panel" aria-label="Mapa de questões" style="flex: 1 1 280px; max-width: 340px; border: 1.5px solid var(--color-border); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px; background: #ffffff;">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
       <h2 style="margin: 0; font-size: 1.15rem;">Mapa de quest&otilde;es</h2>
-      <span style="font-size: 0.875rem;">
-        <strong id="mapa-respondidas-count">{{ respondidas_count }}</strong> de {{ total_questoes }} respondidas
-      </span>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 0.875rem;">
+          <strong id="mapa-respondidas-count">{{ respondidas_count }}</strong> de {{ total_questoes }} respondidas
+        </span>
+        <button type="button" class="btn btn-secondary mapa-btn-fechar-mobile" id="btn-fechar-mapa" aria-label="Fechar mapa">
+          Fechar
+        </button>
+      </div>
     </div>
 
     <!-- Grade com as questões -->
@@ -176,6 +197,23 @@
         Simulado personalizado de acordo com o componente e a &aacute;rea selecionados.
       {% endif %}
     </p>
+
+    <!-- Ações no painel do mapa (visíveis no celular) -->
+    <div class="mapa-actions-mobile">
+      <div id="status-salvamento-mapa" class="text-muted" style="font-size: 0.8125rem;">
+        {% if ultima_atualizacao %}
+          Salvo automaticamente &agrave;s {{ ultima_atualizacao.strftime('%H:%M') }}
+        {% else %}
+          Respostas salvas automaticamente
+        {% endif %}
+      </div>
+      <a class="btn btn-secondary" href="{{ url_for('main.inicio') }}">
+        Sair (o tempo continua)
+      </a>
+      <button type="button" class="btn btn-primary" id="btn-abrir-modal-entrega-mapa">
+        Entregar simulado
+      </button>
+    </div>
   </aside>
 
 </main>
@@ -196,7 +234,7 @@
       </strong>
       <div id="modal-em-branco-grade" style="display: flex; flex-wrap: wrap; gap: 8px;">
         {% for num in questoes_em_branco %}
-          <button type="button" class="btn btn-secondary btn-goto-questao" data-ordem="{{ num }}" style="min-width: 48px; min-height: 38px; padding: 0 10px; font-size: 0.875rem;">
+          <button type="button" class="btn btn-secondary btn-goto-questao" data-ordem="{{ num }}" style="min-width: 48px; min-height: 44px; padding: 0 10px; font-size: 0.875rem;">
             {{ num }}
           </button>
         {% endfor %}

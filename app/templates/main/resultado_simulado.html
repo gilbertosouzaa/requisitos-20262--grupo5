@@ -113,8 +113,8 @@
       </div>
     </div>
 
-    <div class="custom-table-container">
-      <table class="custom-table" id="tabela-correcao" aria-label="Tabela de correção questão a questão">
+    <div class="custom-table-container responsive-cards-container">
+      <table class="custom-table responsive-cards" id="tabela-correcao" aria-label="Tabela de correção questão a questão">
         <thead>
           <tr>
             <th style="width: 60px;">N&ordm;</th>
@@ -129,16 +129,16 @@
           {% for r in linhas_tabela %}
             <tr class="linha-questao"
                 data-situacao="{% if r.situacao == 'Acertou' %}acertou{% elif r.situacao == 'Errou' %}errou{% elif r.situacao == 'Em branco' %}em_branco{% else %}respondida{% endif %}">
-              <td><strong>{{ r.numero }}</strong></td>
-              <td>{{ r.area }}</td>
-              <td>{{ r.sua_resposta }}</td>
-              <td>{{ r.gabarito }}</td>
-              <td>
+              <td data-label="Questão"><strong>{{ r.numero }}</strong></td>
+              <td data-label="Área">{{ r.area }}</td>
+              <td data-label="Sua resposta">{{ r.sua_resposta }}</td>
+              <td data-label="Gabarito">{{ r.gabarito }}</td>
+              <td data-label="Situação">
                 <span class="status-pill {% if r.situacao == 'Acertou' %}status-acertou{% elif r.situacao == 'Errou' %}status-errou{% elif r.situacao == 'Em branco' %}status-nao-respondida{% else %}status-respondida{% endif %}">
                   {{ r.situacao }}
                 </span>
               </td>
-              <td style="text-align: right;">
+              <td class="td-action" style="text-align: right;">
                 <a href="{{ url_for('main.revisao_questao_simulado', id=simulado.id, questao_id=r.questao_id) }}" style="font-weight: 600; font-size: 0.875rem;">
                   Ver corre&ccedil;&atilde;o &rsaquo;
                 </a>

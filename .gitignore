@@ -30,3 +30,5 @@ Thumbs.db
 # Rascunhos e arquivos gerados fora do projeto
 Claude outputs/
 prototipo/
+
+tests/screenshots/
