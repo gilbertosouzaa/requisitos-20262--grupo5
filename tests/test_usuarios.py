@@ -16,7 +16,11 @@ def app():
     with app.app_context():
         db.create_all()
         seed_database()
-        yield app
+    # O contexto da aplicação NÃO fica aberto durante o teste: se ficasse, todas as
+    # requisições do test_client reaproveitariam o mesmo `g`, e o Flask-Login manteria
+    # o usuário em cache entre requisições (mascarando a desativação de conta).
+    yield app
+    with app.app_context():
         db.session.remove()
         db.drop_all()
 

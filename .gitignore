@@ -26,3 +26,7 @@ htmlcov/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Rascunhos e arquivos gerados fora do projeto
+Claude outputs/
+prototipo/

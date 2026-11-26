@@ -5,8 +5,15 @@ import re
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app import create_app
+from app.seed import seed_database
+from config import TestConfig
 from app.extensions import db
 from app.models import Usuario, Curso, Questao, RespostaEstudo
+
+class E2EConfig(TestConfig):
+    """Banco em memória, mas com CSRF ativo para simular o uso real."""
+    WTF_CSRF_ENABLED = True
+
 
 def get_csrf(html):
     m = re.search(r'name="csrf_token"[^>]*value="([^"]+)"', html)
@@ -17,7 +24,10 @@ def get_csrf(html):
     return m.group(1) if m else ''
 
 def test_etapa2_e2e_flow():
-    app = create_app()
+    app = create_app(E2EConfig)
+    with app.app_context():
+        db.create_all()
+        seed_database()
     client = app.test_client()
 
     print("=== TESTE MANUAL SIMULADO DA SEGUNDA ETAPA (COM CSRF) ===")

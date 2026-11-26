@@ -364,6 +364,14 @@ def test_t14_unicidade_ano_curso_numero(client, app):
 
     with app.app_context():
         cc_id = Curso.query.filter_by(nome="Ciência da Computação").first().id
+        # Garante que a Q11 de 2023 (Específico, CC) exista antes de tentar duplicá-la
+        q11 = Questao(
+            ano=2023, curso_id=cc_id, numero=11, componente="especifico",
+            area="Algoritmos", tipo="objetiva", enunciado="Questão 11 original.",
+            gabarito_oficial="A", anulada=False
+        )
+        db.session.add(q11)
+        db.session.commit()
 
     # Q11 já existe para CC em 2023 (Componente Específico)
     dados = {

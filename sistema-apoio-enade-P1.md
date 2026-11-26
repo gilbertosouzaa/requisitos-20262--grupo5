@@ -77,9 +77,9 @@ Oferecer ao estudante de graduação um ambiente de estudo para o ENADE em que e
 | Stakeholder | Interesse | Influência | Papel |
 |---|---|:---:|---|
 | Estudante | Praticar, simular a prova e acompanhar a evolução | Alta | Usuário principal |
-| Administrador | Manter o banco de questões e moderar o fórum | Alta | Usuário administrativo |
-| Professor | Comentar questões e usar o sistema em aula | Média | Usuário colaborador (a validar) |
-| Coordenação de curso | Acompanhar a preparação das turmas | Média/Alta | Consumidor de relatórios (a validar) |
+| Administrador | Manter o banco de questões, moderar o fórum e gerenciar usuários e perfis | Alta | Usuário administrativo |
+| Professor | Revisar comentários das questões da sua área e usar o sistema em aula | Média | Usuário colaborador (validado nas entrevistas) |
+| Coordenação de curso | Acompanhar a preparação das turmas | Média/Alta | Consumidor de relatórios (validado parcialmente; sem entrevista com coordenador) |
 | Universidade | Melhorar o desempenho institucional no ENADE | Alta | Patrocinador |
 | Equipe de desenvolvimento | Especificar e implementar a solução | Média | Equipe técnica |
 | Professor da disciplina | Avaliar e validar os entregáveis | Alta | Validador |
@@ -131,17 +131,40 @@ A elicitação começa pelos estudantes, que usarão a maior parte das funcional
 
 ## 5. Resultados das Entrevistas
 
-> Preencher com as respostas obtidas. Cada achado deve indicar o requisito que ele gera ou confirma.
+Foram realizadas 4 entrevistas semiestruturadas, seguindo os roteiros da seção 4: 3 estudantes (Murilo Enzo, Tainá Souza e Mariana Marques) e 1 professor (Prof. Marcelo). Não foi possível entrevistar um coordenador de curso. As respostas completas estão no documento *Entrevistas de elicitação de requisitos* (P1 / Sprint 1 / Milestone M1).
+
+### 5.1 Resumo por entrevistado
 
 | ID | Perfil / Curso | Necessidade identificada | Problema relatado | Requisito relacionado |
 |---|---|---|---|---|
-| E01 | Estudante — | | | |
-| E02 | Estudante — | | | |
-| E03 | Estudante — | | | |
-| E04 | Professor — | | | |
-| E05 | Coordenador — | | | |
+| E01 | Estudante — Murilo Enzo | Filtrar por curso, assunto, ano e tipo e rever as questões que errou; ver o próprio progresso com metas pequenas; simulados curtos no dia a dia e completo perto da prova | Alternar entre PDFs de prova e gabarito no site do INEP é trabalhoso; explicações superficiais em outras plataformas; não sabe o que faltou na discursiva | RF04, RF08, RF09, RF15, RF16, RF07, N08 |
+| E02 | Estudante — Tainá Souza | Filtrar por área, componente e ano; gabarito com explicação objetiva no modo estudo e só no final do simulado; histórico por área ao longo das semanas; plano de preparação | Dificuldade de achar conteúdos específicos em outras plataformas; entender o estilo das questões e administrar o tempo | RF04, RF08, RN04, RF09–RF12, RF16, N08 |
+| E03 | Estudante — Mariana Marques | Estudar em poucos minutos pelo celular; simulados de 10 a 15 questões; indicação clara de acerto e explicação curta; comparar a discursiva com os pontos esperados pelo INEP | Conciliar a preparação com a graduação; interfaces carregadas; dificuldade de avaliar a própria resposta discursiva | RNF02, RF09, RF06, RF08, RF07, RF15, RF16, N07 |
+| E04 | Professor — Prof. Marcelo | Usar como apoio livre (listas avaliativas no futuro); importar provas oficiais; administradores organizam o banco e professores revisam comentários da sua área; relatórios agregados por área, de participação e de conteúdos difíceis | Buscar, selecionar e organizar material de provas anteriores consome tempo; risco de identificar alunos em grupos pequenos | RNF10, RF19, RF20, RN11, RF21, RN12, RNF04 |
+| E05 | Coordenador — | *Entrevista não realizada.* | — | RF21 (validação parcial) |
 
-### Necessidades levantadas na análise documental
+### 5.2 Achados consolidados
+
+| Achado | Frequência | Efeito na especificação |
+|---|:---:|---|
+| Filtros por curso, área, ano, componente e tipo | 3 de 3 estudantes | Confirma RF04 |
+| Rever as questões que errou | 1 de 3 | Confirma RF04 (filtro por situação) |
+| Correção imediata com explicação de cada alternativa no modo estudo; gabarito só no final do simulado | 3 de 3 | Confirma RF06, RF08 e RN04 |
+| Explicação objetiva, sem textos longos | 2 de 3 | Orientação para o conteúdo dos comentários (RF20) |
+| Simulados curtos no dia a dia e prova completa perto do exame | 3 de 3 | Confirma RF09 (completo e parcial) |
+| Estuda principalmente pelo celular; computador para simulados longos e discursivas | 2 de 3 | Reforça RNF02; gera N07 |
+| Dificuldade de autoavaliar a discursiva; quer comparar com os pontos esperados pelo INEP | 3 de 3 | Reforça RF07; padrão de resposta deve ser apresentado em pontos |
+| Ver a evolução ao longo do tempo e comparar os últimos simulados | 3 de 3 | Reforça RF16 |
+| Metas, plano de estudo ou indicação do que revisar como motivação para voltar | 3 de 3 | Gera N08 |
+| Participaria do fórum mais para ler do que para escrever | 3 de 3 | Confirma RF17; prioridade é consultar dúvidas existentes |
+| Resultados individuais privados; dados agregados da turma aceitáveis | 4 de 4 | Confirma RNF04, RF21 e RN12 |
+| Professor revisa comentários apenas da sua área, com processo simples | Professor | Valida o ator Professor em RF20 e RN11, restrito à área |
+| Importação das provas oficiais como ponto de partida | Professor | Confirma RNF10 e RF19 |
+| Relatório com média por área, participação em simulados e conteúdos com maior dificuldade | Professor | Valida RF21 e acrescenta o indicador de participação |
+
+### 5.3 Necessidades levantadas
+
+**Na análise documental**
 
 | ID | Necessidade |
 |---|---|
@@ -151,6 +174,26 @@ A elicitação começa pelos estudantes, que usarão a maior parte das funcional
 | N04 | Saber em quais áreas precisa estudar mais |
 | N05 | Tirar dúvidas e discutir questões com outras pessoas |
 | N06 | Ter os próprios dados protegidos e acessíveis só para si |
+
+**Nas entrevistas**
+
+| ID | Necessidade | Origem |
+|---|---|---|
+| N07 | Estudar em sessões curtas, inclusive pelo celular | E01, E02, E03 |
+| N08 | Manter a rotina de estudo com metas, plano ou indicação clara do que revisar | E01, E02, E03 |
+| N09 | Professores contribuírem com comentários da sua área por um processo simples e com responsabilidades divididas | E04 |
+
+### 5.4 Situação dos itens "a validar"
+
+| Item | Antes | Depois das entrevistas |
+|---|---|---|
+| RF13 — Retomada de simulado | Média (a validar) | **Validado.** Estudantes conciliam o estudo com a graduação e usam o celular, o que torna interrupções frequentes |
+| RF20 / Professor | Participação de professores a validar | **Validado com restrição:** o professor revisa comentários apenas das áreas sob sua responsabilidade |
+| RF21 / Coordenador | Baixa (a validar) | **Validado parcialmente:** a necessidade e as regras de privacidade foram confirmadas por estudantes e professor, mas nenhum coordenador foi entrevistado. Prioridade continua Baixa |
+
+### 5.5 Limitações
+
+A amostra é pequena (3 estudantes e 1 professor), os cursos dos estudantes não foram registrados e não houve entrevista com coordenação. Recomenda-se aplicar o questionário online previsto na seção 3 para confirmar N07 e N08 com mais estudantes e entrevistar ao menos um coordenador antes de especificar o relatório agregado (RF21).
 
 ---
 
@@ -185,7 +228,7 @@ No modo estudo, o estudante deve poder marcar uma alternativa e confirmar a resp
 Prioridade: Alta
 
 **RF07 — Resposta de questão discursiva**
-O estudante deve poder escrever sua resposta em campo de texto e, depois de confirmar, ver o padrão de resposta divulgado pelo INEP para fazer a autoavaliação.
+O estudante deve poder escrever sua resposta em campo de texto e, depois de confirmar, ver o padrão de resposta divulgado pelo INEP para fazer a autoavaliação. Sempre que possível, o padrão deve ser apresentado como uma lista dos pontos esperados, para facilitar a comparação (entrevistas E01–E03).
 Prioridade: Média
 
 **RF08 — Gabarito comentado**
@@ -212,7 +255,7 @@ Prioridade: Alta
 
 **RF13 — Retomada de simulado**
 Se o estudante sair ou perder a conexão, o sistema deve permitir retomar o simulado de onde parou, com as respostas já marcadas.
-Prioridade: Média (a validar)
+Prioridade: Média (validada nas entrevistas)
 
 **RF14 — Resultado do simulado**
 Após a finalização, o sistema deve mostrar acertos, erros, questões em branco, tempo utilizado e o gabarito comentado de cada questão.
@@ -225,7 +268,7 @@ O sistema deve mostrar o percentual de acertos do estudante, no geral e por áre
 Prioridade: Alta
 
 **RF16 — Histórico**
-O sistema deve mostrar o histórico de simulados realizados e a evolução do percentual de acertos ao longo do tempo.
+O sistema deve mostrar o histórico de simulados realizados e a evolução do percentual de acertos ao longo do tempo, geral e por área, permitindo comparar os últimos simulados (entrevistas E01–E03).
 Prioridade: Média
 
 ### Fórum
@@ -245,12 +288,16 @@ O administrador deve poder cadastrar, editar, classificar e remover questões, a
 Prioridade: Alta
 
 **RF20 — Cadastro de comentários de gabarito**
-Administradores, e professores autorizados, devem poder cadastrar e editar os comentários das questões.
-Prioridade: Alta (participação de professores a validar)
+Administradores devem poder cadastrar e editar os comentários de qualquer questão. Professores autorizados devem poder cadastrar e editar os comentários das questões das áreas sob sua responsabilidade.
+Prioridade: Alta (participação de professores validada na entrevista E04)
 
 **RF21 — Relatório agregado por curso**
-A coordenação deve poder consultar o desempenho médio dos estudantes do curso por área, sem identificação individual.
-Prioridade: Baixa (a validar)
+A coordenação deve poder consultar, sem identificação individual, o desempenho médio dos estudantes do curso por área, a participação nos simulados e os conteúdos com maior dificuldade.
+Prioridade: Baixa (validada parcialmente: falta entrevista com coordenação)
+
+**RF22 — Gestão de usuários e perfis**
+O administrador deve poder listar e buscar usuários, criar contas (a pessoa define a própria senha por um link enviado ao e-mail), alterar o perfil (Estudante, Professor ou Administrador), definir as áreas de cada professor e desativar ou reativar contas. Toda alteração fica registrada em um histórico com autor, data e motivo.
+Prioridade: Média (decorre de RF20, RN11 e da entrevista E04)
 
 ---
 
@@ -259,7 +306,7 @@ Prioridade: Baixa (a validar)
 | ID | Categoria | Requisito | Como verificar |
 |---|---|---|---|
 | RNF01 | Usabilidade | Um novo usuário deve conseguir iniciar um simulado em até 3 cliques a partir da tela inicial | Teste com usuários |
-| RNF02 | Responsividade | A interface deve funcionar em telas a partir de 360 px de largura | Teste em dispositivos e emuladores |
+| RNF02 | Responsividade | A interface deve funcionar em telas a partir de 360 px de largura, com prioridade para o modo estudo e os simulados parciais, que os estudantes usam pelo celular (N07) | Teste em dispositivos e emuladores |
 | RNF03 | Segurança | Senhas devem ser armazenadas com hash (bcrypt ou Argon2), e toda comunicação deve usar HTTPS | Revisão de código e configuração |
 | RNF04 | Privacidade | O tratamento de dados pessoais deve seguir a LGPD; os resultados individuais só são visíveis para o próprio estudante | Revisão de regras de acesso |
 | RNF05 | Desempenho | 95% das requisições devem responder em até 2 segundos com até 500 usuários simultâneos | Teste de carga |
@@ -276,7 +323,7 @@ Prioridade: Baixa (a validar)
 | ID | Regra |
 |---|---|
 | RN01 | Apenas usuários autenticados podem responder questões, fazer simulados, ver desempenho e publicar no fórum. A consulta de questões pode ser feita sem login. |
-| RN02 | Toda questão deve ter ano, curso, componente, área de conhecimento, tipo e gabarito oficial. |
+| RN02 | Toda questão deve ter ano, componente, área de conhecimento, tipo e gabarito oficial (ou padrão de resposta, nas discursivas). Questões do Componente Específico também devem ter curso; as de Formação Geral são comuns a todos os cursos da mesma edição. |
 | RN03 | Questões anuladas pelo INEP continuam visíveis para estudo, mas não entram em simulados nem no cálculo de desempenho. |
 | RN04 | No simulado, o gabarito só é exibido depois da finalização. |
 | RN05 | O tempo do simulado continua correndo mesmo se o estudante sair da tela. Ao zerar, o simulado é finalizado automaticamente com as respostas já marcadas. |
@@ -285,8 +332,17 @@ Prioridade: Baixa (a validar)
 | RN08 | Percentual de acertos = questões objetivas corretas ÷ questões objetivas respondidas. Questões em branco aparecem à parte, e discursivas não entram no cálculo. |
 | RN09 | O desempenho por área considera a área de conhecimento cadastrada em cada questão. |
 | RN10 | Toda mensagem do fórum fica vinculada a uma questão e ao autor. Mensagens com 3 ou mais denúncias ficam ocultas até a análise do administrador. |
-| RN11 | Apenas administradores podem cadastrar, editar ou remover questões. Professores só podem editar comentários de gabarito. |
+| RN11 | Apenas administradores podem cadastrar, editar ou remover questões. Professores só podem editar comentários de gabarito das questões das áreas sob sua responsabilidade. |
 | RN12 | Relatórios para a coordenação só mostram dados agregados de grupos com pelo menos 5 estudantes. |
+| RN13 | Todo cadastro feito pela tela pública cria um usuário com perfil Estudante. O perfil nunca é escolhido no cadastro público. |
+| RN14 | Apenas um Administrador pode alterar perfis, áreas de professor ou status de contas. |
+| RN15 | O sistema impede que o último Administrador ativo seja rebaixado ou desativado. |
+| RN16 | Um administrador não pode alterar o próprio perfil nem desativar a própria conta. |
+| RN17 | Contas não são apagadas pela interface, apenas desativadas. Uma conta desativada não consegue entrar, mas seus dados e respostas continuam no histórico. |
+| RN18 | A gestão de usuários exibe apenas dados cadastrais (nome, e-mail, curso, perfil, áreas, status e datas), nunca respostas, simulados ou desempenho. |
+| RN19 | Um professor precisa ter pelo menos uma área atribuída. Sem área, ele não acessa nenhum comentário. |
+| RN20 | Um comentário de gabarito só é exibido ao estudante depois de publicado. Enquanto estiver em rascunho, o estudante vê "Comentário em elaboração". |
+| RN21 | Uma questão que já foi respondida por estudantes (no modo estudo ou em simulados) não pode ser removida, apenas anulada, para preservar o histórico. |
 
 ---
 
@@ -313,6 +369,7 @@ Prioridade: Baixa (a validar)
 | US15 | Como administrador, quero moderar mensagens denunciadas | P2 | RF18 |
 | US16 | Como estudante, quero responder discursivas e comparar com o padrão de resposta | P2 | RF07 |
 | US17 | Como coordenador, quero ver o desempenho médio do curso por área | P3 | RF21 |
+| US18 | Como administrador, quero gerenciar usuários, perfis e as áreas dos professores para controlar quem pode fazer o quê no sistema | P2 | RF22 |
 
 ### 9.1 Critérios de aceitação (histórias P1)
 
@@ -364,12 +421,15 @@ Prioridade: Baixa (a validar)
 
 Ficaram como P1 as funcionalidades sem as quais o sistema não cumpre seu objetivo principal: acesso, banco de questões, correção comentada, simulado e desempenho por área. A gestão de questões e de comentários também entrou como P1, porque sem ela o banco não tem conteúdo. Fórum, histórico e discursivas agregam valor, mas o estudante já consegue se preparar sem eles. O relatório para a coordenação ficou como P3 porque depende de uma decisão sobre privacidade que ainda precisa ser validada.
 
+Depois das entrevistas (seção 5), as regras de privacidade do relatório foram confirmadas, mas ele continua P3 até haver entrevista com a coordenação. O histórico de evolução (US13) e a autoavaliação das discursivas (US16) foram pedidos pelos 3 estudantes entrevistados e são os principais candidatos a subir de prioridade na próxima revisão do backlog.
+
 ---
 
 ## 10. Diagrama de Casos de Uso
 
 ```mermaid
 flowchart LR
+    V(["👤 Visitante"])
     U(["👤 Usuário"])
     E(["👤 Estudante"])
     A(["👤 Administrador"])
@@ -408,9 +468,12 @@ flowchart LR
         UC19(["Moderar fórum"])
         UC20(["Comentar gabarito"])
         UC21(["Consultar relatório<br/>do curso"])
+        UC22(["Gerenciar usuários"])
+        UC23(["Atribuir áreas<br/>ao professor"])
     end
 
-    E --> UC01
+    V --> UC01
+    V --> UC04
     U --> UC02
     E --> UC04
     E --> UC06
@@ -423,6 +486,7 @@ flowchart LR
     A --> UC20
     P --> UC20
     C --> UC21
+    A --> UC22
 
     UC03 -.->|"«extend»"| UC02
     UC05 -.->|"«extend»"| UC04
@@ -437,16 +501,20 @@ flowchart LR
 
     UC16 -.->|"«extend»"| UC15
     UC17 -.->|"«extend»"| UC15
+
+    UC23 -.->|"«extend»"| UC22
 ```
 
 > Diagrama em Mermaid, que o GitHub renderiza nativamente. Como o Mermaid não tem notação UML própria para casos de uso, a convenção adotada é: atores e casos de uso em formas arredondadas, generalização com seta grossa (`é um`) e `«include»`/`«extend»` com seta tracejada.
 
 **Observações sobre o modelo**
 
+- O ator **Visitante** representa quem ainda não entrou no sistema: ele consulta questões sem login (RN01) e pode se cadastrar, tornando-se Estudante (RN13).
 - O ator **Usuário** generaliza os demais, e por isso "Autenticar-se" fica ligado a ele uma única vez.
 - **Ver gabarito comentado** estende **Responder questão** apenas no modo estudo. No simulado, a correção aparece dentro de **Ver resultado**, depois da finalização (RN04).
 - O controle de tempo não aparece como caso de uso, porque é um comportamento do sistema e não um objetivo do ator. Ele está descrito em RF10, RF12, RN05 e RN06.
-- Os atores **Professor** e **Coordenador** e os casos UC20 e UC21 dependem de validação nas entrevistas.
+- **Gerenciar usuários** (UC22) é exclusivo do Administrador (RN14). **Atribuir áreas ao professor** (UC23) estende esse caso quando o perfil escolhido é Professor (RN19).
+- O ator **Professor** e o caso UC20 foram validados na entrevista E04, com acesso restrito às áreas sob sua responsabilidade. O ator **Coordenador** e o caso UC21 foram validados parcialmente, pois não houve entrevista com coordenação (seção 5.4).
 
 ---
 
@@ -548,7 +616,10 @@ O cliente (web ou mobile) se comunica com o servidor de aplicação somente por 
 | N03 — Entender os erros | RF06, RF07, RF08, RF20 | US05, US06, US11, US16 | UC06, UC07, UC20 |
 | N04 — Saber o que estudar | RF15, RF16, RF21 | US09, US13, US17 | UC13, UC14, UC21 |
 | N05 — Discutir questões | RF17, RF18 | US14, US15 | UC15–UC17, UC19 |
-| N06 — Dados protegidos | RF01–RF03, RNF03, RNF04 | US01–US03 | UC01–UC03 |
+| N06 — Dados protegidos | RF01–RF03, RF22, RNF03, RNF04, RN12, RN13–RN18 | US01–US03, US18 | UC01–UC03, UC22 |
+| N07 — Estudar em sessões curtas e pelo celular | RF09, RF13, RNF02 | US07, US12 | UC08, UC09, UC12 |
+| N08 — Manter a rotina e saber o que revisar | RF15, RF16 (metas e plano de estudo ainda a especificar) | US09, US13 | UC13, UC14 |
+| N09 — Colaboração docente nos comentários | RF20, RF22, RN11, RN19, RN20 | US11, US18 | UC20, UC22, UC23 |
 
 ---
 
@@ -556,4 +627,4 @@ O cliente (web ou mobile) se comunica com o servidor de aplicação somente por 
 
 Esta primeira etapa definiu o problema, os envolvidos, o escopo e um conjunto inicial de requisitos, regras e modelos para o Sistema de Apoio ao ENADE. Considerar desde o início a estrutura real da prova (questões discursivas, tempo de 4 horas e questões anuladas) evitou um modelo que tratasse todas as questões como objetivas.
 
-Os pontos marcados como "a validar" (participação de professores, relatório da coordenação e retomada de simulado) serão confirmados ou descartados com base nas entrevistas, cujos resultados vão atualizar a seção 5 e a matriz de rastreabilidade.
+As entrevistas com 3 estudantes e 1 professor (seção 5) confirmaram a maior parte da especificação, validaram a retomada de simulado e a participação de professores (restrita à sua área) e reforçaram a privacidade dos resultados individuais. Também trouxeram duas necessidades novas, estudo em sessões curtas pelo celular (N07) e apoio à rotina com metas e plano de estudo (N08), e aumentaram a importância do histórico de evolução (RF16) e da autoavaliação das discursivas (RF07). O relatório da coordenação continua dependendo de uma entrevista com coordenação.
